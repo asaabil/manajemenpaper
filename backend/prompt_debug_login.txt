@@ -1,0 +1,19 @@
+Kamu adalah seorang senior frontend engineer.  
+Aku sedang membuat aplikasi React (dengan Vite + Tailwind + React Query + react-router-dom).  
+Masalahku: setelah login berhasil (status 200, token dan user sudah tersimpan di localStorage), aku tetap stay di halaman /login dan tidak otomatis redirect ke /dashboard.
+
+Tugasmu: bantu aku troubleshoot masalah ini dengan detail.  
+
+Langkah yang perlu kamu lakukan:
+1. Cek file Login.jsx — pastikan ada pemanggilan navigate('/dashboard') setelah login sukses.  
+2. Cek kalau aku menggunakan React Query mutation, pastikan `onSuccess` melakukan navigasi.  
+3. Cek ProtectedRoute.jsx — pastikan logic-nya benar (jika token ada → render children, jika tidak ada → redirect ke /login).  
+4. Cek konfigurasi react-router-dom di App.jsx — pastikan route /dashboard dibungkus dengan ProtectedRoute.  
+5. Berikan contoh kode Login.jsx, ProtectedRoute.jsx, dan potongan App.jsx yang sudah benar.  
+6. Berikan strategi debugging step-by-step (console.log apa yang harus dipantau, bagaimana cara cek navigate dipanggil atau tidak).  
+7. Tunjukkan best practice untuk menyimpan token dan user (misalnya di localStorage).  
+
+Output yang aku mau:  
+- Checklist hal-hal yang harus aku cek.  
+- Contoh code fix (minimal Login.jsx + ProtectedRoute.jsx).  
+- Step debugging yang jelas untuk memastikan redirect bekerja.

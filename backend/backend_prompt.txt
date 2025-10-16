@@ -1,0 +1,187 @@
+PERAN & TUJUAN
+Anda adalah principal backend engineer. Tugas Anda: menghasilkan codebase backend REST API yang production-ready (untuk tahap development), menggunakan:
+- Node.js + Express.js (ESM)
+- MongoDB + Mongoose
+- MongoDB Atlas Search untuk full-text search
+- JWT authentication + RBAC (roles: admin, dosen, mahasiswa)
+- Local file storage (multer + filesystem)
+- Logging sederhana (morgan)
+- Tanpa frontend (hanya REST)
+
+Gunakan struktur, standar, dan spesifikasi berikut. Hasilkan kode lengkap beserta instruksi run dan sample requests.
+
+==== FUNGSI UTAMA ====
+- FU-1 Manajemen Paper: upload, metadata, update metadata, list, detail, unduh, versioning (revisi).
+- FU-2 Manajemen Artefak Digital: upload berbagai jenis file, tautkan ke paper, metadata, list, unduh, tautan repo eksternal.
+- FU-3 Pencarian & Penemuan: full-text search (Atlas Search), filter, sorting, browsing by kategori.
+- FU-4 Manajemen Pengguna & Akses: registrasi, login/logout, profil, lupa password (mock service), RBAC (admin/dosen/mahasiswa).
+- FU-5 Reading List: CRUD koleksi pribadi, add/remove paper, lihat koleksi orang lain (isPublic).
+- FU-6 Statistik: counters views & downloads.
+
+==== STRUKTUR PROYEK ====
+/ (root)
+  package.json
+  .env.example
+  uploads/                 // folder penyimpanan file lokal
+    papers/
+    artifacts/
+  src/
+    app.js
+    server.js
+    config/
+      env.js
+      db.js
+    middlewares/
+      auth.js
+      rbac.js
+      error.js
+      upload.js
+    utils/
+      responses.js
+      validators.js
+    models/
+      User.js
+      Paper.js
+      Artifact.js
+      ReadingList.js
+    services/
+      auth.service.js
+      paper.service.js
+      artifact.service.js
+      readingList.service.js
+      search.service.js
+      stats.service.js
+      mail.service.mock.js
+    controllers/
+      auth.controller.js
+      users.controller.js
+      papers.controller.js
+      artifacts.controller.js
+      readingLists.controller.js
+      search.controller.js
+      stats.controller.js
+    routes/
+      index.js
+      auth.routes.js
+      users.routes.js
+      papers.routes.js
+      artifacts.routes.js
+      readingLists.routes.js
+      search.routes.js
+      stats.routes.js
+    seed/
+      seed-admin.js
+    docs/
+      api-quickstart.md
+
+==== ENV VARS ====
+PORT=4000
+MONGODB_URI=mongodb+srv://...
+JWT_SECRET=change_me
+JWT_EXPIRES_IN=7d
+UPLOAD_DIR=./uploads
+
+==== MODEL DATA (MongoDB) ====
+User:
+  - name, email (unique), passwordHash, role (['admin','dosen','mahasiswa']), affiliation, timestamps
+
+Paper:
+  - owner (User ref), title, abstract, authors[], institution, keywords[], publicationDate, categories[], 
+  - file: { path, filename, mimetype, size }
+  - versions: [ { path, filename, mimetype, size, note, createdAt } ]
+  - viewCount, downloadCount, timestamps, isPublic
+
+Artifact:
+  - paper (ref), name, description, type (['dataset','diagram','code','document','other']),
+  - technology[], language[], methodology[],
+  - file: { path, filename, mimetype, size }
+  - externalRepoUrl, downloadCount, isPublic, timestamps
+
+ReadingList:
+  - owner (User ref), name, description, isPublic,
+  - items: [ { paper: ObjectId, addedAt } ]
+  - timestamps
+
+==== AUTENTIKASI & RBAC ====
+- Password hash: bcrypt
+- JWT bearer: Authorization: Bearer <token>
+- Roles:
+  * admin: semua fitur (user, paper, artifact, reading list, delete).
+  * dosen: CRUD paper miliknya + artefak terkait + reading list.
+  * mahasiswa: read-only publik, buat reading list.
+- Middleware: authRequired, requireRoles(...roles), ownershipGuard.
+
+==== UPLOAD FILE (LOCAL) ====
+- Gunakan multer, simpan ke `uploads/papers` dan `uploads/artifacts`.
+- Validasi MIME & size (PDF, DOCX untuk paper; fleksibel untuk artefak).
+- Metadata file simpan di MongoDB (path, filename, size, mime).
+- Untuk download: endpoint mengirim file langsung via `res.download()` atau streaming.
+- Versioning: setiap revisi → simpan file baru di `uploads/papers` + push metadata ke `versions[]`.
+
+==== FULL-TEXT SEARCH (Atlas Search) ====
+- Buat index "papers_default" (title, abstract, authors, institution, keywords, categories).
+- Buat index "artifacts_default" (name, description, type, technology, language, methodology).
+- Endpoint `/api/v1/search` mendukung q, scope, filters, sortBy, pagination.
+
+==== ENDPOINTS (v1) ====
+Auth:
+  POST /api/v1/auth/register
+  POST /api/v1/auth/login
+  POST /api/v1/auth/logout
+  POST /api/v1/auth/forgot-password
+  POST /api/v1/auth/reset-password
+
+Users (admin):
+  GET /api/v1/users
+  GET /api/v1/users/:id
+  PATCH /api/v1/users/:id
+  DELETE /api/v1/users/:id
+
+Papers:
+  POST   /api/v1/papers                (dosen/admin, multipart)
+  GET    /api/v1/papers
+  GET    /api/v1/papers/:id
+  GET    /api/v1/papers/:id/download   (download file + increment counter)
+  PATCH  /api/v1/papers/:id            (owner/admin)
+  POST   /api/v1/papers/:id/version    (owner/admin)
+  DELETE /api/v1/papers/:id            (admin)
+
+Artifacts:
+  POST   /api/v1/papers/:paperId/artifacts
+  GET    /api/v1/papers/:paperId/artifacts
+  GET    /api/v1/artifacts/:id
+  GET    /api/v1/artifacts/:id/download
+  PATCH  /api/v1/artifacts/:id
+  DELETE /api/v1/artifacts/:id
+
+Reading Lists:
+  POST   /api/v1/reading-lists
+  GET    /api/v1/reading-lists/me
+  GET    /api/v1/reading-lists/:id
+  PATCH  /api/v1/reading-lists/:id
+  DELETE /api/v1/reading-lists/:id
+  POST   /api/v1/reading-lists/:id/items
+  DELETE /api/v1/reading-lists/:id/items/:paperId
+
+Search:
+  GET    /api/v1/search
+
+Stats:
+  GET    /api/v1/stats/papers/top-downloads
+  GET    /api/v1/stats/papers/top-views
+
+==== RESPONSE STANDARD ====
+JSON { success, data, error }
+Error handler global: status codes 400,401,403,404,500.
+
+==== SEED & RUN ====
+- Seed admin script (email+pwd dari ENV).
+- npm scripts: "dev", "seed".
+- docs/api-quickstart.md berisi contoh curl untuk register, login, upload, search, reading list.
+
+==== HASILKAN ====
+1) Struktur project & kode lengkap.
+2) .env.example dengan UPLOAD_DIR.
+3) Instruksi run: `npm install`, `npm run dev`.
+4) Contoh cURL: register/login, upload paper, search, reading list, download.
+5) Catatan setup Atlas Search index.

@@ -1,0 +1,33 @@
+You are an expert React frontend engineer.  
+I am building the frontend for a paper management system. The backend already exists (Node.js, Express.js, MongoDB) and exposes a REST API with JWT-based authentication and role-based access (admin, dosen, mahasiswa).  
+
+My requirements for the frontend:  
+1. Use **React with Vite** as the project setup.  
+2. Use **Tailwind CSS** for styling.  
+3. Use **React Query (TanStack Query)** for data fetching and caching.  
+4. Authentication flow:  
+   - Login page (email, password)  
+   - Register page (name, email, password, role selection: admin/dosen/mahasiswa)  
+   - Save JWT token in **localStorage** after login.  
+   - Auto-redirect to Login if the user is not authenticated.  
+   - Decode JWT to get user role, then hide UI elements based on role.  
+5. Role-based UI behavior:  
+   - Admin: sees all features.  
+   - Dosen: can upload/edit their own papers, create reading lists.  
+   - Mahasiswa: can only view papers, create reading lists.  
+   (UI difference is only by hiding/showing buttons, not separate layouts).  
+6. Pages to implement now (skeleton only, no full logic):  
+   - `/login` → login form  
+   - `/register` → registration form  
+   - `/dashboard` → protected page, show "Welcome [role]"  
+7. Implement routing with **React Router v6**.  
+8. Create a reusable `api.js` helper using axios with interceptors (inject token from localStorage).  
+9. Create `useAuth` hook that provides login, register, logout, and role-based checks.  
+10. Create a simple `ProtectedRoute` component for private routes.  
+11. Use Tailwind for clean but minimal styling (responsive forms, buttons, cards).  
+12. Do not implement paper upload, search, or reading list yet. Only skeleton and auth flow.
+
+Task:  
+- Generate a complete Vite project with the above setup.  
+- Show me the file structure and key files (main.jsx, App.jsx, pages, hooks, context, api).  
+- Write the code for each file.  

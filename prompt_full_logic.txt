@@ -1,0 +1,94 @@
+You are an expert full-stack engineer.  
+I am building a paper management system with the following stack:  
+- Backend: Node.js + Express.js + MongoDB + JWT authentication + role-based access (admin, dosen, mahasiswa).  
+- Frontend: React (Vite) + Tailwind CSS + React Query + React Router v6.  
+
+Status now:  
+- Skeleton for all pages (auth, papers, paper detail, upload, reading lists, admin panel, stats) already exists.  
+- Auth flow works (register, login, logout, token saved in localStorage, ProtectedRoute).  
+- But logic for edit paper, delete paper, reading lists (add/remove), stats page, error handling, and UX polish are not yet implemented.
+
+Your tasks:  
+
+### Backend improvements
+1. **Papers**  
+   - Add endpoint to edit paper (`PUT /api/v1/papers/:id`) → only owner (dosen) or admin can edit.  
+   - Add endpoint to delete paper (`DELETE /api/v1/papers/:id`) → only owner (dosen) or admin can delete.  
+   - Validate ownership before allowing edit/delete.
+
+2. **Reading Lists**  
+   - Add endpoint to add paper to reading list (`POST /api/v1/reading-lists/:id/items`).  
+   - Add endpoint to remove paper from reading list (`DELETE /api/v1/reading-lists/:id/items/:paperId`).  
+   - Ensure only the owner can modify their reading lists.
+
+3. **Stats**  
+   - Add endpoints for:  
+     - `GET /api/v1/stats/papers/top-downloads` → return top 5 papers by downloadCount.  
+     - `GET /api/v1/stats/papers/top-views` → return top 5 papers by viewCount.  
+
+4. **Error Handling**  
+   - Centralized error handler middleware in Express.  
+   - Return consistent error format `{ success: false, error: { message } }`.  
+   - Handle validation errors, auth errors, forbidden access, file upload errors.
+
+5. **Performance**  
+   - Add indexes in MongoDB on common query fields (title, keywords, categories, owner).  
+   - Paginate paper list queries.  
+   - Optimize search (use MongoDB text index or Atlas Search).  
+
+---
+
+### Frontend improvements
+1. **Papers Page**  
+   - Implement pagination (next/prev page).  
+   - Add search integration (calls backend search endpoint).  
+   - Add "Edit" and "Delete" buttons → open modal for edit, confirm delete.  
+   - Connect edit/delete to backend with React Query mutations.  
+   - Show success/error toasts.
+
+2. **Paper Detail Page**  
+   - Show "Add to Reading List" button → open modal to select reading list.  
+   - Call backend to add/remove paper from list.  
+   - Update UI optimistically with React Query.
+
+3. **Upload Paper Page**  
+   - Implement full form validation (title, abstract, file required).  
+   - Show progress/loading state during upload.  
+   - Show success toast or error message.
+
+4. **Reading Lists Page**  
+   - Show all reading lists of user.  
+   - Add "Create New Reading List" modal → mutation to backend.  
+   - Inside list → show papers, remove paper button → confirm before remove.  
+   - Optimistic updates with React Query.
+
+5. **Admin Panel**  
+   - Users tab: implement delete user (with confirmation modal).  
+   - Papers tab: implement delete paper (with confirmation modal).  
+   - Use React Query mutations with success/error handling.
+
+6. **Stats Page**  
+   - Call backend stats endpoints.  
+   - Use Recharts to render:  
+     - Bar chart → top downloads.  
+     - Line chart → top views.  
+   - Show loading/error state.
+
+7. **Error Handling (Frontend)**  
+   - Add React Query `onError` → show toast messages.  
+   - Axios interceptor handles 401 → auto logout + redirect.  
+   - Show user-friendly error messages on forms.
+
+8. **UX / Performance**  
+   - Add loading spinners (Tailwind or react-spinners) during data fetch.  
+   - Disable buttons during mutation.  
+   - Use optimistic updates for list mutations.  
+   - Make UI responsive (mobile-friendly layouts with Tailwind).  
+
+---
+
+Output I want:  
+- Full updated backend code (controllers, routes, services, middleware) for the new features.  
+- Full updated frontend code (pages, hooks, components) with working logic for edit/delete paper, reading lists, stats, error handling, performance/UX improvements.  
+- Show file structure and key files that changed.  
+- Ensure code is clean, modular, and follows best practices.  
