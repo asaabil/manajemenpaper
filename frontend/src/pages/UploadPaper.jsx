@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUploadPaper } from '../hooks/usePapers';
 import { v4 as uuidv4 } from 'uuid';
-import parse from '@retorquere/bibtex-parser';
+import { parse } from '@retorquere/bibtex-parser';
 import { Toast } from '../components/Toast';
 
 // Helper to create a new, empty paper structure
@@ -17,6 +17,7 @@ const createEmptyPaper = () => ({
     publicationDate: '',
   },
   paperFile: null,
+  fileHint: '', // Store file path hint from .bib file
   artifacts: [],
   errors: {}, // Add errors object for inline validation
 });
@@ -101,6 +102,11 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium dark:text-gray-300">Paper File (PDF)</label>
+              {paper.fileHint && (
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 mb-1">
+                  <span className="font-semibold">Suggested file from .bib:</span> {paper.fileHint}
+                </p>
+              )}
               <input type="file" onChange={handlePaperFileChange} required accept=".pdf" className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800" />
                {paper.errors.paperFile && <p className="text-red-500 text-sm mt-1">{paper.errors.paperFile}</p>}
             </div>
@@ -190,19 +196,104 @@ const UploadPaper = () => {
     try {
       // Step 1: Parse the text to get the result object
       const parsedResult = parse(text);
+      console.log('Parsed result:', parsedResult);
 
       // Step 2: Manually map the .entries array to the desired format
       const bib = (parsedResult.entries || []).map((entry) => {
-        const authors = (entry.creators || []).map(a => a.name || `${a.firstName} ${a.lastName}`.trim()).filter(Boolean).join(', ');
-        const details = {
-          title: entry.fields.title?.[0] || '',
-          abstract: entry.fields.abstract?.[0] || '',
-          authors: authors,
-          keywords: (entry.fields.keywords || []).join(', '),
-          categories: '',
-          publicationDate: entry.fields.year?.[0] || entry.fields.date?.[0] || '',
+        console.log('Processing entry:', entry);
+
+        // Handle authors - the library parses author as array of Creator objects
+        let authors = '';
+        if (entry.fields?.author && Array.isArray(entry.fields.author)) {
+          authors = entry.fields.author.map(creator => {
+            // Creator object has: name, lastName, firstName, prefix, suffix
+            if (creator.name) {
+              return creator.name;
+            } else if (creator.firstName || creator.lastName) {
+              const parts = [];
+              if (creator.firstName) parts.push(creator.firstName);
+              if (creator.prefix) parts.push(creator.prefix);
+              if (creator.lastName) parts.push(creator.lastName);
+              if (creator.suffix) parts.push(creator.suffix);
+              return parts.join(' ');
+            }
+            return '';
+          }).filter(Boolean).join(', ');
+        }
+
+        // Helper function to convert field value to string
+        const fieldToString = (fieldValue) => {
+          if (!fieldValue) return '';
+          if (typeof fieldValue === 'string') return fieldValue;
+          if (Array.isArray(fieldValue)) {
+            return fieldValue.map(item => {
+              if (typeof item === 'string') return item;
+              return '';
+            }).join(', ');
+          }
+          return String(fieldValue);
         };
-        return { ...createEmptyPaper(), details };
+
+        // Handle keywords - typically array of strings
+        const keywords = fieldToString(entry.fields?.keywords);
+
+        // Handle title - typically string
+        const title = fieldToString(entry.fields?.title);
+
+        // Handle abstract - typically string
+        const abstract = fieldToString(entry.fields?.abstract);
+
+        // Handle year/date - typically string
+        let publicationDate = fieldToString(entry.fields?.year);
+        if (!publicationDate) {
+          publicationDate = fieldToString(entry.fields?.date);
+        }
+
+        // Extract file path hint from .bib (if available)
+        let fileHint = '';
+        if (entry.fields?.file) {
+          let fileField = fieldToString(entry.fields.file);
+          console.log('Raw file field:', fileField);
+
+          // File field format in BibTeX is often: :path:type
+          // The path may contain escaped colons (\:)
+          // Replace escaped colons temporarily
+          fileField = fileField.replace(/\\:/g, '###COLON###');
+
+          // Now split by unescaped colons
+          if (fileField.includes(':')) {
+            const parts = fileField.split(':');
+            // Usually format is :path:type, so path is at index 1
+            fileHint = parts[1] || parts[0] || '';
+            // Restore the escaped colons
+            fileHint = fileHint.replace(/###COLON###/g, ':');
+          } else {
+            fileHint = fileField.replace(/###COLON###/g, ':');
+          }
+
+          console.log('Extracted path:', fileHint);
+
+          // Clean up the path - extract just the filename
+          if (fileHint) {
+            // Handle both forward slash and backslash
+            const pathParts = fileHint.split(/[/\\]/);
+            fileHint = pathParts[pathParts.length - 1]; // Get last part (filename)
+            console.log('Final filename:', fileHint);
+          }
+        }
+
+        const details = {
+          title: title,
+          abstract: abstract,
+          authors: authors,
+          keywords: keywords,
+          categories: '',
+          publicationDate: publicationDate,
+        };
+
+        console.log('Extracted details:', details);
+        console.log('File hint:', fileHint);
+        return { ...createEmptyPaper(), details, fileHint };
       });
 
       if (bib.length > 0) {
@@ -284,14 +375,21 @@ const UploadPaper = () => {
       const formData = new FormData();
       Object.keys(paper.details).forEach(key => formData.append(key, paper.details[key]));
       formData.append('paperFile', paper.paperFile);
-      
-      paper.artifacts.forEach((artifact, index) => {
+
+      // Only add artifacts that have a value (file or link)
+      const validArtifacts = paper.artifacts.filter(artifact => {
+        if (artifact.sourceType === 'file' && artifact.value instanceof File) return true;
+        if (artifact.sourceType === 'link' && artifact.value && typeof artifact.value === 'string' && artifact.value.trim() !== '') return true;
+        return false;
+      });
+
+      console.log('Valid artifacts to upload:', validArtifacts);
+
+      validArtifacts.forEach((artifact, index) => {
         formData.append(`artifacts[${index}][type]`, artifact.type);
         formData.append(`artifacts[${index}][name]`, artifact.name || '');
         formData.append(`artifacts[${index}][sourceType]`, artifact.sourceType);
-        if (artifact.value) {
-          formData.append(`artifacts[${index}][value]`, artifact.value);
-        }
+        formData.append(`artifacts[${index}][value]`, artifact.value);
       });
 
       try {

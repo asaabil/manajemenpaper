@@ -32,7 +32,40 @@ const parseFlexibleDate = (dateString) => {
 
 const reconstructArtifacts = (body) => {
   const artifacts = [];
-  const artifactIndices = Object.keys(body)
+
+  // Convert body to plain object if needed (handles null prototype objects)
+  const plainBody = {};
+  for (const key in body) {
+    plainBody[key] = body[key];
+  }
+
+  console.log('Plain body keys:', Object.keys(plainBody));
+
+  // Check if artifacts is sent as an array directly (JSON parsed by multer)
+  if (plainBody.artifacts && Array.isArray(plainBody.artifacts)) {
+    console.log('Artifacts sent as array:', plainBody.artifacts);
+    plainBody.artifacts.forEach((artifact, index) => {
+      // Convert null prototype object to plain object
+      const plainArtifact = {};
+      for (const key in artifact) {
+        plainArtifact[key] = artifact[key];
+      }
+
+      if (plainArtifact.type && plainArtifact.sourceType) {
+        artifacts.push({
+          index: index,
+          type: plainArtifact.type,
+          name: plainArtifact.name || '',
+          sourceType: plainArtifact.sourceType,
+          value: plainArtifact.value
+        });
+      }
+    });
+    return artifacts;
+  }
+
+  // Fallback: Check for flat key-value format (artifacts[0][type], etc.)
+  const artifactIndices = Object.keys(plainBody)
     .map(key => {
       const match = key.match(/^artifacts\[(\d+)\]\[type\]$/);
       return match ? parseInt(match[1], 10) : null;
@@ -41,16 +74,23 @@ const reconstructArtifacts = (body) => {
     .sort((a, b) => a - b);
 
   const uniqueIndices = [...new Set(artifactIndices)];
+  console.log('Found artifact indices:', uniqueIndices);
 
   for (const index of uniqueIndices) {
-    const type = body[`artifacts[${index}][type]`];
+    const type = plainBody[`artifacts[${index}][type]`];
+    const name = plainBody[`artifacts[${index}][name]`];
+    const sourceType = plainBody[`artifacts[${index}][sourceType]`];
+    const value = plainBody[`artifacts[${index}][value]`];
+
+    console.log(`Artifact ${index}:`, { type, name, sourceType, value });
+
     if (type) {
       artifacts.push({
         index: index,
         type: type,
-        name: body[`artifacts[${index}][name]`],
-        sourceType: body[`artifacts[${index}][sourceType]`],
-        value: body[`artifacts[${index}][value]`]
+        name: name || '',
+        sourceType: sourceType,
+        value: value
       });
     }
   }
@@ -58,6 +98,10 @@ const reconstructArtifacts = (body) => {
 };
 
 export const createPaperWithArtifacts = async (body, files, user) => {
+  console.log('=== CREATE PAPER WITH ARTIFACTS ===');
+  console.log('Body:', body);
+  console.log('Files:', files);
+
   const { title, abstract, authors, institution, keywords, publicationDate, categories, isPublic } = body;
 
   const paperFile = files.find(f => f.fieldname === 'paperFile');
@@ -91,9 +135,12 @@ export const createPaperWithArtifacts = async (body, files, user) => {
   const savedPaper = await paper.save();
 
   const artifactDataList = reconstructArtifacts(body);
+  console.log('Reconstructed artifacts:', artifactDataList);
   const createdArtifacts = [];
 
   for (const artifactData of artifactDataList) {
+    console.log('Processing artifact:', artifactData);
+
     const newArtifactPayload = {
       paper: savedPaper._id,
       type: artifactData.type,
@@ -103,8 +150,11 @@ export const createPaperWithArtifacts = async (body, files, user) => {
 
     if (artifactData.sourceType === 'link') {
       newArtifactPayload.url = artifactData.value;
+      console.log('Artifact is link with URL:', newArtifactPayload.url);
     } else if (artifactData.sourceType === 'file') {
       const artifactFile = files.find(f => f.fieldname === `artifacts[${artifactData.index}][value]`);
+      console.log('Looking for file with fieldname:', `artifacts[${artifactData.index}][value]`);
+      console.log('Found artifact file:', artifactFile);
       if (artifactFile) {
         newArtifactPayload.file = {
           path: artifactFile.path,
@@ -115,13 +165,27 @@ export const createPaperWithArtifacts = async (body, files, user) => {
       }
     }
 
+    console.log('Final artifact payload:', newArtifactPayload);
+
     if (newArtifactPayload.type && newArtifactPayload.sourceType) {
-      const artifact = new Artifact(newArtifactPayload);
-      const savedArtifact = await artifact.save();
-      createdArtifacts.push(savedArtifact);
+      // Check if artifact has valid data (either url or file)
+      if ((newArtifactPayload.sourceType === 'link' && newArtifactPayload.url) ||
+          (newArtifactPayload.sourceType === 'file' && newArtifactPayload.file)) {
+        const artifact = new Artifact(newArtifactPayload);
+        const savedArtifact = await artifact.save();
+        console.log('Saved artifact:', savedArtifact);
+        createdArtifacts.push(savedArtifact);
+      } else {
+        console.log('Skipping artifact - no valid url or file');
+      }
+    } else {
+      console.log('Skipping artifact - missing type or sourceType');
     }
   }
 
+  console.log('Total artifacts created:', createdArtifacts.length);
+
+  await savedPaper.populate('owner', 'name email');
   return { ...savedPaper.toObject(), artifacts: createdArtifacts };
 };
 
@@ -197,13 +261,20 @@ export const updatePaperWithArtifacts = async (id, body, files, user) => {
       }
     }
     if (newArtifactPayload.type && newArtifactPayload.sourceType) {
-      const artifact = new Artifact(newArtifactPayload);
-      const savedArtifact = await artifact.save();
-      createdArtifacts.push(savedArtifact);
+      // Check if artifact has valid data (either url or file)
+      if ((newArtifactPayload.sourceType === 'link' && newArtifactPayload.url) ||
+          (newArtifactPayload.sourceType === 'file' && newArtifactPayload.file)) {
+        const artifact = new Artifact(newArtifactPayload);
+        const savedArtifact = await artifact.save();
+        createdArtifacts.push(savedArtifact);
+      } else {
+        console.log('Skipping artifact - no valid url or file');
+      }
     }
   }
 
   const updatedPaper = await paper.save();
+  await updatedPaper.populate('owner', 'name email');
   return { ...updatedPaper.toObject(), artifacts: createdArtifacts };
 };
 

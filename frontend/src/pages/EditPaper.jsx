@@ -61,7 +61,8 @@ const EditPaper = () => {
       const updatedPaper = data?.data;
       queryClient.setQueryData(['paper', id], updatedPaper); // Update the cache with the response
       queryClient.invalidateQueries({ queryKey: ['papers'] });
-      navigate(`/papers/${id}`);
+      navigate('/papers');
+      window.location.reload();
     },
   });
 
@@ -212,7 +213,7 @@ const EditPaper = () => {
                     ) : (
                       <input type="url" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="https://example.com/data" className="w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
                     )}
-                    {!artifact.clientManaged && artifact.sourceType === 'file' && (
+                    {!artifact.clientManaged && artifact.sourceType === 'file' && artifact.file && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">File already uploaded: {artifact.file.filename}. Leave blank to keep it, or upload a new file to replace it.</p>
                     )}
                   </div>

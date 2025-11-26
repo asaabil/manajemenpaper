@@ -27,7 +27,7 @@ const PaperDetail = () => {
   if (isError) return <div className="text-red-500">Error: {error.message}</div>;
   if (!paper) return <div>Paper not found.</div>;
 
-  const isOwner = paper.owner._id.toString() === user?.id; // This was the line before I touched it
+  const isOwner = (typeof paper.owner === 'string' ? paper.owner : paper.owner?._id) === user?.id;
   const isAdmin = user?.role === 'admin';
 
   return (
