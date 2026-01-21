@@ -284,6 +284,7 @@ export const getAllPapers = async (page = 1, limit = 10, q = '') => {
     query.$or = [
       { title: new RegExp(q, 'i') },
       { abstract: new RegExp(q, 'i') },
+      { authors: new RegExp(q, 'i') },
       { keywords: new RegExp(q, 'i') },
       { categories: new RegExp(q, 'i') },
     ];

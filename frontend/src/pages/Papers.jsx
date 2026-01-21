@@ -53,7 +53,7 @@ const Papers = () => {
               <Link to={`/papers/${paper._id}`} className="text-xl font-semibold text-indigo-700 dark:text-indigo-400 hover:underline">
                 {paper.title}
               </Link>
-              {(paper.owner._id.toString() === user?.id || user?.role === 'admin') && (
+              {(paper.owner?._id.toString() === user?.id || user?.role === 'admin') && (
                 <div className="flex space-x-2">
                   <Link to={`/papers/${paper._id}/edit`} className="px-3 py-1 text-sm bg-yellow-500 text-white rounded-md hover:bg-yellow-600">Edit</Link>
                   <button onClick={() => handleDelete(paper._id)} className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700">Delete</button>

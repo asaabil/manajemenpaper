@@ -1,0 +1,3 @@
+
+# Ignore all text files that contain "prompt" in their name
+*prompt*.txt
