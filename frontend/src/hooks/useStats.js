@@ -4,7 +4,7 @@ import api from '../services/api';
 
 // Fetch top downloaded papers
 const fetchTopDownloaded = async () => {
-  const { data } = await api.get('/stats/top-downloaded');
+  const { data } = await api.get('/stats/top-d');
   return data.data; // Assuming API response is { success, data: [...] }
 };
 
@@ -14,7 +14,7 @@ export const useTopDownloadedPapers = () => {
 
 // Fetch top viewed papers
 const fetchTopViewed = async () => {
-  const { data } = await api.get('/stats/top-viewed');
+  const { data } = await api.get('/stats/papers/top-viewed');
   return data.data; // Assuming API response is { success, data: [...] }
 };
 
