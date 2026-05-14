@@ -46,7 +46,7 @@ const Register = () => {
               <option value="admin">Admin</option>
             </select>
           </div>
-          {registerError && <p className="text-sm text-red-600">{registerError.response?.data?.message || 'Registration failed'}</p>}
+          {registerError && <p className="text-sm text-red-600">{registerError.response?.data?.error?.message || 'Registration failed'}</p>}
           <button type="submit" disabled={isRegistering} className="w-full px-4 py-2 font-bold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300">
             {isRegistering ? 'Creating Account...' : 'Register'}
           </button>

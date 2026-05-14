@@ -59,6 +59,45 @@ export const AuthProvider = ({ children }) => {
     },
   });
 
+  // --- Automatic Idle Logout Logic ---
+  useEffect(() => {
+    let idleTimer;
+    const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 Menit (bisa disesuaikan)
+
+    const resetTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        if (token) {
+          console.log('User idle for too long, logging out...');
+          logout();
+          alert('Sesi Anda telah berakhir karena tidak ada aktivitas selama 15 menit.');
+        }
+      }, IDLE_TIMEOUT);
+    };
+
+    if (token) {
+      // Event yang dianggap sebagai "aktivitas"
+      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+      
+      // Jalankan timer pertama kali
+      resetTimer();
+
+      // Tambahkan listener ke setiap event
+      events.forEach(event => {
+        window.addEventListener(event, resetTimer);
+      });
+
+      // Cleanup function
+      return () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        events.forEach(event => {
+          window.removeEventListener(event, resetTimer);
+        });
+      };
+    }
+  }, [token, logout]);
+  // ------------------------------------
+
   const registerMutation = useMutation({
     mutationFn: (userData) => api.post('/auth/register', userData),
     onSuccess: (data) => {
