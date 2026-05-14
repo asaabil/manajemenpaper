@@ -66,7 +66,16 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
       }
       return artifact;
     });
-    onPaperChange(paper.id, { artifacts: newArtifacts });
+
+    // Clear artifact errors when user changes something
+    const newErrors = { ...paper.errors };
+    if (newErrors.artifactErrors) {
+      delete newErrors.artifactErrors[artifactId];
+      if (Object.keys(newErrors.artifactErrors).length === 0) {
+        delete newErrors.artifactErrors;
+      }
+    }
+    onPaperChange(paper.id, { artifacts: newArtifacts, errors: newErrors });
   };
 
   const handleAddArtifact = () => {
@@ -82,7 +91,12 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
 
   const handleRemoveArtifact = (artifactId) => {
     const newArtifacts = paper.artifacts.filter(a => a.id !== artifactId);
-    onPaperChange(paper.id, { artifacts: newArtifacts });
+    // Also remove any errors associated with this artifact
+    const newErrors = { ...paper.errors };
+    if (newErrors.artifactErrors) {
+      delete newErrors.artifactErrors[artifactId];
+    }
+    onPaperChange(paper.id, { artifacts: newArtifacts, errors: newErrors });
   };
 
   return (
@@ -145,44 +159,54 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
           </div>
           {paper.errors.artifacts && <p className="text-red-500 text-sm mb-4">{paper.errors.artifacts}</p>}
           <div className="space-y-4">
-            {paper.artifacts.map((artifact) => (
-              <div key={artifact.id} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600 relative">
-                <button type="button" onClick={() => handleRemoveArtifact(artifact.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400">
-                  &times;
-                </button>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium dark:text-gray-300">Artifact Type</label>
-                    <select value={artifact.type} onChange={(e) => handleArtifactChange(artifact.id, 'type', e.target.value)} className="w-full mt-1 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                      <option value="dataset">Dataset</option>
-                      <option value="source_code">Source Code</option>
-                      <option value="diagram">Diagram</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  {artifact.type === 'other' && (
+            {paper.artifacts.map((artifact) => {
+              const artifactError = paper.errors.artifactErrors?.[artifact.id];
+              return (
+                <div key={artifact.id} className={`p-4 border rounded-lg bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600 relative ${artifactError ? 'border-red-500 ring-1 ring-red-500' : ''}`}>
+                  <button type="button" onClick={() => handleRemoveArtifact(artifact.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400">
+                    &times;
+                  </button>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-medium dark:text-gray-300">Custom Name <span className="text-red-500">*</span></label>
-                      <input type="text" value={artifact.name} onChange={(e) => handleArtifactChange(artifact.id, 'name', e.target.value)} placeholder="e.g., Presentation Slides" className="w-full mt-1 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
+                      <label className="block text-xs font-medium dark:text-gray-300">Artifact Type</label>
+                      <select value={artifact.type} onChange={(e) => handleArtifactChange(artifact.id, 'type', e.target.value)} className="w-full mt-1 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="dataset">Dataset</option>
+                        <option value="source_code">Source Code</option>
+                        <option value="diagram">Diagram</option>
+                        <option value="other">Other</option>
+                      </select>
                     </div>
-                  )}
-                  <div className={artifact.type === 'other' ? '' : 'md:col-span-2'}>
-                    <label className="block text-xs font-medium dark:text-gray-300">Source</label>
-                    <div className="flex items-center mt-1">
-                      <input type="radio" id={`source-file-${artifact.id}`} checked={artifact.sourceType === 'file'} onChange={() => handleArtifactChange(artifact.id, 'sourceType', 'file')} className="mr-1" />
-                      <label htmlFor={`source-file-${artifact.id}`} className="mr-3 text-sm dark:text-gray-300">File</label>
-                      <input type="radio" id={`source-link-${artifact.id}`} checked={artifact.sourceType === 'link'} onChange={() => handleArtifactChange(artifact.id, 'sourceType', 'link')} className="mr-1" />
-                      <label htmlFor={`source-link-${artifact.id}`} className="text-sm dark:text-gray-300">Link</label>
-                    </div>
-                    {artifact.sourceType === 'file' ? (
-                      <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0], e.target)} className="w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400" />
-                    ) : (
-                      <input type="url" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="https://example.com/data" className="w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
+                    {artifact.type === 'other' && (
+                      <div>
+                        <label className="block text-xs font-medium dark:text-gray-300">Custom Name <span className="text-red-500">*</span></label>
+                        <input type="text" value={artifact.name} onChange={(e) => handleArtifactChange(artifact.id, 'name', e.target.value)} placeholder="e.g., Presentation Slides" className={`w-full mt-1 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white ${artifactError?.name ? 'border-red-500' : ''}`} />
+                        {artifactError?.name && <p className="text-red-500 text-xs mt-1">{artifactError.name}</p>}
+                      </div>
                     )}
+                    <div className={artifact.type === 'other' ? '' : 'md:col-span-2'}>
+                      <label className="block text-xs font-medium dark:text-gray-300">Source</label>
+                      <div className="flex items-center mt-1">
+                        <input type="radio" id={`source-file-${artifact.id}`} checked={artifact.sourceType === 'file'} onChange={() => handleArtifactChange(artifact.id, 'sourceType', 'file')} className="mr-1" />
+                        <label htmlFor={`source-file-${artifact.id}`} className="mr-3 text-sm dark:text-gray-300">File</label>
+                        <input type="radio" id={`source-link-${artifact.id}`} checked={artifact.sourceType === 'link'} onChange={() => handleArtifactChange(artifact.id, 'sourceType', 'link')} className="mr-1" />
+                        <label htmlFor={`source-link-${artifact.id}`} className="text-sm dark:text-gray-300">Link</label>
+                      </div>
+                      {artifact.sourceType === 'file' ? (
+                        <>
+                          <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0], e.target)} className={`w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400 ${artifactError?.value ? 'border-red-500' : ''}`} />
+                          {artifactError?.value && <p className="text-red-500 text-xs mt-1">{artifactError.value}</p>}
+                        </>
+                      ) : (
+                        <>
+                          <input type="text" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="youtube.com or https://google.com" className={`w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white ${artifactError?.value ? 'border-red-500' : ''}`} />
+                          {artifactError?.value && <p className="text-red-500 text-xs mt-1">{artifactError.value}</p>}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -366,8 +390,10 @@ const UploadPaper = () => {
     setIsUploading(true);
 
     let validationFailed = false;
+    const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
+
     const papersWithErrors = papers.map(paper => {
-      const newErrors = {};
+      const newErrors = { ...paper.errors };
       const date = paper.details.publicationDate;
       const validDateRegex = /^(\d{4}|\d{4}-\d{2}-\d{2})$/;
 
@@ -396,12 +422,43 @@ const UploadPaper = () => {
       }
 
       // Artifact validation
+      const artifactErrors = {};
       paper.artifacts.forEach(artifact => {
+        const errors = {};
+        
         if (artifact.type === 'other' && (!artifact.name || !artifact.name.trim())) {
-          newErrors.artifacts = 'Custom name is required for "Other" artifact type.';
+          errors.name = 'Custom name is required.';
           validationFailed = true;
         }
+
+        if (artifact.sourceType === 'file') {
+          if (!(artifact.value instanceof File)) {
+            errors.value = 'Please select a file.';
+            validationFailed = true;
+          }
+        } else if (artifact.sourceType === 'link') {
+          if (!artifact.value || !artifact.value.trim()) {
+            errors.value = 'Link is required.';
+            validationFailed = true;
+          } else if (!urlRegex.test(artifact.value)) {
+            errors.value = 'Please enter a valid URL (e.g., example.com).';
+            validationFailed = true;
+          }
+        }
+
+        if (Object.keys(errors).length > 0) {
+          artifactErrors[artifact.id] = errors;
+        }
       });
+
+      if (Object.keys(artifactErrors).length > 0) {
+        newErrors.artifactErrors = artifactErrors;
+        newErrors.artifacts = 'Please fix the errors in your artifacts.';
+        validationFailed = true;
+      } else {
+        delete newErrors.artifactErrors;
+        delete newErrors.artifacts;
+      }
 
       return { ...paper, errors: newErrors };
     });
@@ -410,7 +467,7 @@ const UploadPaper = () => {
 
     if (validationFailed) {
       setIsUploading(false);
-      showToast('Please fill in all required fields marked with *', 'error');
+      showToast('Please fix the validation errors before submitting.', 'error');
       return;
     }
 
@@ -422,20 +479,20 @@ const UploadPaper = () => {
       Object.keys(paper.details).forEach(key => formData.append(key, paper.details[key]));
       formData.append('paperFile', paper.paperFile);
 
-      // Only add artifacts that have a value (file or link)
-      const validArtifacts = paper.artifacts.filter(artifact => {
-        if (artifact.sourceType === 'file' && artifact.value instanceof File) return true;
-        if (artifact.sourceType === 'link' && artifact.value && typeof artifact.value === 'string' && artifact.value.trim() !== '') return true;
-        return false;
-      });
+      // Prepare artifacts and prepend https:// if needed
+      paper.artifacts.forEach((artifact, index) => {
+        let value = artifact.value;
+        if (artifact.sourceType === 'link' && typeof value === 'string') {
+          value = value.trim();
+          if (value && !/^https?:\/\//i.test(value)) {
+            value = `https://${value}`;
+          }
+        }
 
-      console.log('Valid artifacts to upload:', validArtifacts);
-
-      validArtifacts.forEach((artifact, index) => {
         formData.append(`artifacts[${index}][type]`, artifact.type);
         formData.append(`artifacts[${index}][name]`, artifact.name || '');
         formData.append(`artifacts[${index}][sourceType]`, artifact.sourceType);
-        formData.append(`artifacts[${index}][value]`, artifact.value);
+        formData.append(`artifacts[${index}][value]`, value);
       });
 
       try {
