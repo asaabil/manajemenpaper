@@ -34,10 +34,29 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
   };
 
   const handlePaperFileChange = (e) => {
-    onPaperChange(paper.id, { paperFile: e.target.files[0] });
+    const file = e.target.files[0];
+    const newErrors = { ...paper.errors };
+    
+    if (file && file.size > 10 * 1024 * 1024) { // 10MB limit
+      newErrors.paperFile = 'File size must be less than 10MB.';
+      onPaperChange(paper.id, { paperFile: null, errors: newErrors });
+      // Reset the input value so user can try again
+      e.target.value = null;
+    } else {
+      delete newErrors.paperFile;
+      onPaperChange(paper.id, { paperFile: file, errors: newErrors });
+    }
   };
 
-  const handleArtifactChange = (artifactId, field, value) => {
+  const handleArtifactChange = (artifactId, field, value, target = null) => {
+    if (field === 'value' && value instanceof File) {
+      if (value.size > 20 * 1024 * 1024) {
+        alert('Artifact file size must be less than 20MB.');
+        if (target) target.value = null;
+        value = null;
+      }
+    }
+
     const newArtifacts = paper.artifacts.map(artifact => {
       if (artifact.id === artifactId) {
         const updatedArtifact = { ...artifact, [field]: value };
@@ -76,21 +95,24 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
           <h2 className="text-xl font-semibold mb-4 border-b pb-2 dark:text-gray-200 dark:border-gray-700">Paper Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium dark:text-gray-300">Title</label>
-              <input type="text" name="title" value={paper.details.title} onChange={handleDetailChange} required className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium dark:text-gray-300">Title <span className="text-red-500">*</span></label>
+              <input type="text" name="title" value={paper.details.title} onChange={handleDetailChange} required className={`w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${paper.errors.title ? 'border-red-500' : ''}`} />
+              {paper.errors.title && <p className="text-red-500 text-xs mt-1">{paper.errors.title}</p>}
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium dark:text-gray-300">Abstract</label>
-              <textarea name="abstract" value={paper.details.abstract} onChange={handleDetailChange} required rows="4" className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+              <label className="block text-sm font-medium dark:text-gray-300">Abstract <span className="text-red-500">*</span></label>
+              <textarea name="abstract" value={paper.details.abstract} onChange={handleDetailChange} required rows="4" className={`w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${paper.errors.abstract ? 'border-red-500' : ''}`}></textarea>
+              {paper.errors.abstract && <p className="text-red-500 text-xs mt-1">{paper.errors.abstract}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300">Authors (comma-separated)</label>
-              <input type="text" name="authors" value={paper.details.authors} onChange={handleDetailChange} required className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium dark:text-gray-300">Authors (comma-separated) <span className="text-red-500">*</span></label>
+              <input type="text" name="authors" value={paper.details.authors} onChange={handleDetailChange} required className={`w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${paper.errors.authors ? 'border-red-500' : ''}`} />
+              {paper.errors.authors && <p className="text-red-500 text-xs mt-1">{paper.errors.authors}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium dark:text-gray-300">Publication Date</label>
-              <input type="text" name="publicationDate" value={paper.details.publicationDate} onChange={handleDetailChange} placeholder="YYYY-MM-DD or YYYY" className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-              {paper.errors.publicationDate && <p className="text-red-500 text-sm mt-1">{paper.errors.publicationDate}</p>}
+              <input type="text" name="publicationDate" value={paper.details.publicationDate} onChange={handleDetailChange} placeholder="YYYY-MM-DD or YYYY" className={`w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${paper.errors.publicationDate ? 'border-red-500' : ''}`} />
+              {paper.errors.publicationDate && <p className="text-red-500 text-xs mt-1">{paper.errors.publicationDate}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium dark:text-gray-300">Keywords (comma-separated)</label>
@@ -101,14 +123,14 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
               <input type="text" name="categories" value={paper.details.categories} onChange={handleDetailChange} className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium dark:text-gray-300">Paper File (PDF)</label>
+              <label className="block text-sm font-medium dark:text-gray-300">Paper File (PDF) <span className="text-red-500">*</span></label>
               {paper.fileHint && (
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 mb-1">
                   <span className="font-semibold">Suggested file from .bib:</span> {paper.fileHint}
                 </p>
               )}
-              <input type="file" onChange={handlePaperFileChange} required accept=".pdf" className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800" />
-               {paper.errors.paperFile && <p className="text-red-500 text-sm mt-1">{paper.errors.paperFile}</p>}
+              <input type="file" onChange={handlePaperFileChange} required accept=".pdf" className={`w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800 ${paper.errors.paperFile ? 'border-red-500' : ''}`} />
+               {paper.errors.paperFile && <p className="text-red-500 text-xs mt-1">{paper.errors.paperFile}</p>}
             </div>
           </div>
         </div>
@@ -121,6 +143,7 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
               Add Artifact
             </button>
           </div>
+          {paper.errors.artifacts && <p className="text-red-500 text-sm mb-4">{paper.errors.artifacts}</p>}
           <div className="space-y-4">
             {paper.artifacts.map((artifact) => (
               <div key={artifact.id} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600 relative">
@@ -139,7 +162,7 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
                   </div>
                   {artifact.type === 'other' && (
                     <div>
-                      <label className="block text-xs font-medium dark:text-gray-300">Custom Name</label>
+                      <label className="block text-xs font-medium dark:text-gray-300">Custom Name <span className="text-red-500">*</span></label>
                       <input type="text" value={artifact.name} onChange={(e) => handleArtifactChange(artifact.id, 'name', e.target.value)} placeholder="e.g., Presentation Slides" className="w-full mt-1 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
                     </div>
                   )}
@@ -152,7 +175,7 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
                       <label htmlFor={`source-link-${artifact.id}`} className="text-sm dark:text-gray-300">Link</label>
                     </div>
                     {artifact.sourceType === 'file' ? (
-                      <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0])} className="w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400" />
+                      <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0], e.target)} className="w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400" />
                     ) : (
                       <input type="url" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="https://example.com/data" className="w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
                     )}
@@ -348,6 +371,20 @@ const UploadPaper = () => {
       const date = paper.details.publicationDate;
       const validDateRegex = /^(\d{4}|\d{4}-\d{2}-\d{2})$/;
 
+      // Validate Metadata
+      if (!paper.details.title.trim()) {
+        newErrors.title = 'Title is required.';
+        validationFailed = true;
+      }
+      if (!paper.details.abstract.trim()) {
+        newErrors.abstract = 'Abstract is required.';
+        validationFailed = true;
+      }
+      if (!paper.details.authors.trim()) {
+        newErrors.authors = 'Authors are required.';
+        validationFailed = true;
+      }
+
       if (date && !validDateRegex.test(date)) {
         newErrors.publicationDate = 'Format must be YYYY or YYYY-MM-DD.';
         validationFailed = true;
@@ -358,6 +395,14 @@ const UploadPaper = () => {
         validationFailed = true;
       }
 
+      // Artifact validation
+      paper.artifacts.forEach(artifact => {
+        if (artifact.type === 'other' && (!artifact.name || !artifact.name.trim())) {
+          newErrors.artifacts = 'Custom name is required for "Other" artifact type.';
+          validationFailed = true;
+        }
+      });
+
       return { ...paper, errors: newErrors };
     });
 
@@ -365,6 +410,7 @@ const UploadPaper = () => {
 
     if (validationFailed) {
       setIsUploading(false);
+      showToast('Please fill in all required fields marked with *', 'error');
       return;
     }
 
@@ -397,7 +443,7 @@ const UploadPaper = () => {
         successCount++;
       } catch (error) {
         console.error(`Failed to upload paper: ${paper.details.title}`, error);
-        const errorMessage = error.response?.data?.message || 'An unknown error occurred.';
+        const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || 'An unknown error occurred.';
         showToast(`Error uploading "${paper.details.title}": ${errorMessage}`, 'error');
         errorCount++;
       }

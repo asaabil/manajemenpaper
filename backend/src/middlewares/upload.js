@@ -44,7 +44,7 @@ const fileFilter = (req, file, cb) => {
 export const uploadPaperWithArtifacts = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: { fileSize: 1024 * 1024 * 50 } // 50MB limit per file
+  limits: { fileSize: 1024 * 1024 * 20 } // 20MB limit per file
 });
 
 // Keep uploadPaper for versioning
@@ -75,5 +75,5 @@ export const uploadArtifact = multer({
       cb(null, 'artifact-' + uniqueSuffix + path.extname(file.originalname));
     }
   }),
-  limits: { fileSize: 1024 * 1024 * 50 } // 50MB
+  limits: { fileSize: 1024 * 1024 * 20 } // 20MB
 });
