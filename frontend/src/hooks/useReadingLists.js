@@ -5,11 +5,21 @@ import api from '../services/api';
 // Fetch all reading lists for the current user
 const fetchReadingLists = async () => {
   const { data } = await api.get('/reading-lists/me');
-  return data.data; // Assuming API response is { success, data: [...] }
+  return data.data;
 };
 
 export const useReadingLists = () => {
   return useQuery({ queryKey: ['readingLists'], queryFn: fetchReadingLists });
+};
+
+// Fetch all public reading lists
+const fetchPublicReadingLists = async () => {
+  const { data } = await api.get('/reading-lists/public');
+  return data.data;
+};
+
+export const usePublicReadingLists = () => {
+  return useQuery({ queryKey: ['publicReadingLists'], queryFn: fetchPublicReadingLists });
 };
 
 // Mutation to create a new reading list
@@ -26,7 +36,7 @@ export const useCreateReadingList = () => {
       const previousReadingLists = queryClient.getQueryData(['readingLists']);
       queryClient.setQueryData(['readingLists'], (old) => [
         ...(old || []),
-        { _id: 'optimistic-id', ...newListData, papers: [] }, // Add optimistic ID
+        { _id: 'optimistic-id', ...newListData, papers: [] },
       ]);
       return { previousReadingLists };
     },
@@ -54,7 +64,7 @@ export const useAddPaperToReadingList = () => {
       queryClient.setQueryData(['readingLists'], (old) =>
         old?.map((list) =>
           list._id === readingListId
-            ? { ...list, papers: [...list.papers, { _id: paperId, title: 'Optimistic Paper' }] } // Add optimistic paper
+            ? { ...list, papers: [...list.papers, { _id: paperId, title: 'Optimistic Paper' }] }
             : list
         )
       );
@@ -71,7 +81,7 @@ export const useAddPaperToReadingList = () => {
 
 // Mutation to remove a paper from a reading list
 const removePaperFromReadingList = ({ readingListId, paperId }) => {
-  return api.delete(`/reading-lists/${readingListId}/papers/${paperId}`);
+  return api.delete(`/reading-lists/${readingListId}/items/${paperId}`);
 };
 
 export const useRemovePaperFromReadingList = () => {

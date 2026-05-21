@@ -211,7 +211,7 @@ const EditPaper = () => {
                     {artifact.sourceType === 'file' ? (
                       <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0])} className="w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400" />
                     ) : (
-                      <input type="url" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="https://example.com/data" className="w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
+                      <input type="text" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="youtube.com or https://google.com" className="w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
                     )}
                     {!artifact.clientManaged && artifact.sourceType === 'file' && artifact.file && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">File already uploaded: {artifact.file.filename}. Leave blank to keep it, or upload a new file to replace it.</p>

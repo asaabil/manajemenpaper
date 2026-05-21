@@ -3,11 +3,18 @@ import ReadingList from '../models/ReadingList.js';
 
 export const createReadingList = async (listData, user) => {
   const { name, description, isPublic } = listData;
+  
+  // Restriction: Only 'dosen' or 'admin' can create public lists.
+  // 'mahasiswa' can only create private ones.
+  const requestedPublic = isPublic === true || isPublic === 'true';
+  const canBePublic = user.role === 'dosen' || user.role === 'admin';
+  const finalIsPublic = canBePublic ? requestedPublic : false;
+
   const readingList = await ReadingList.create({
     owner: user._id,
     name,
     description,
-    isPublic,
+    isPublic: finalIsPublic,
   });
   return readingList;
 };
@@ -23,6 +30,24 @@ export const getMyReadingLists = async (user) => {
     return {
       ...rest,
       papers: items.map(item => item.paper).filter(Boolean) // a. get the paper, b. filter out null/undefined if a paper was deleted
+    };
+  });
+
+  return transformedLists;
+};
+
+export const getPublicReadingLists = async () => {
+  const readingLists = await ReadingList.find({ isPublic: true })
+    .populate('owner', 'name email role')
+    .populate('items.paper')
+    .lean();
+
+  // Transform the data to match frontend expectations (items -> papers)
+  const transformedLists = readingLists.map(list => {
+    const { items, ...rest } = list;
+    return {
+      ...rest,
+      papers: items.map(item => item.paper).filter(Boolean)
     };
   });
 
@@ -48,6 +73,14 @@ export const updateReadingList = async (id, listData, user) => {
   if (readingList.owner.toString() !== user._id.toString()) {
     throw new Error('Not authorized to update this reading list');
   }
+
+  // Handle role-based restriction for public lists during update too
+  if (listData.isPublic !== undefined) {
+    const requestedPublic = listData.isPublic === true || listData.isPublic === 'true';
+    const canBePublic = user.role === 'dosen' || user.role === 'admin';
+    listData.isPublic = canBePublic ? requestedPublic : false;
+  }
+
   Object.assign(readingList, listData);
   await readingList.save();
   return readingList;

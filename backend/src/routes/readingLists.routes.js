@@ -5,6 +5,8 @@ import { authRequired } from '../middlewares/auth.js';
 
 const router = Router();
 
+router.get('/public', readingListsController.getPublicReadingLists);
+
 router.use(authRequired);
 
 router.post('/', readingListsController.createReadingList);

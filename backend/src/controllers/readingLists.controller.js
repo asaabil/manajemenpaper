@@ -20,6 +20,15 @@ export const getMyReadingLists = async (req, res, next) => {
   }
 };
 
+export const getPublicReadingLists = async (req, res, next) => {
+  try {
+    const lists = await readingListService.getPublicReadingLists();
+    sendSuccess(res, 200, lists);
+  } catch (error) {
+    sendError(res, 500, error.message);
+  }
+};
+
 export const getReadingListById = async (req, res, next) => {
   try {
     const list = await readingListService.getReadingListById(req.params.id, req.user);

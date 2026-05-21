@@ -30,6 +30,15 @@ const parseFlexibleDate = (dateString) => {
   return null;
 };
 
+// Helper function to ensure a URL has a protocol
+const normalizeUrl = (url) => {
+  if (!url) return url;
+  if (!/^https?:\/\//i.test(url)) {
+    return `https://${url}`;
+  }
+  return url;
+};
+
 const reconstructArtifacts = (body) => {
   const artifacts = [];
 
@@ -149,7 +158,7 @@ export const createPaperWithArtifacts = async (body, files, user) => {
     };
 
     if (artifactData.sourceType === 'link') {
-      newArtifactPayload.url = artifactData.value;
+      newArtifactPayload.url = normalizeUrl(artifactData.value);
       console.log('Artifact is link with URL:', newArtifactPayload.url);
     } else if (artifactData.sourceType === 'file') {
       const artifactFile = files.find(f => f.fieldname === `artifacts[${artifactData.index}][value]`);
@@ -248,7 +257,7 @@ export const updatePaperWithArtifacts = async (id, body, files, user) => {
     };
 
     if (artifactData.sourceType === 'link') {
-      newArtifactPayload.url = artifactData.value;
+      newArtifactPayload.url = normalizeUrl(artifactData.value);
     } else if (artifactData.sourceType === 'file') {
       const artifactFile = files.find(f => f.fieldname === `artifacts[${artifactData.index}][value]`);
       if (artifactFile) {

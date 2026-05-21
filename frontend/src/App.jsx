@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -5,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Papers from './pages/Papers';
 import PaperDetail from './pages/PaperDetail';
 import ReadingLists from './pages/ReadingLists';
+import ReadingListDetail from './pages/ReadingListDetail';
 import EditPaper from './pages/EditPaper';
 import Stats from './pages/Stats';
 import AdminPanel from './pages/Admin';
@@ -34,8 +36,11 @@ function App() {
             <Route path="/papers" element={<Papers />} />
             <Route path="/papers/:id" element={<PaperDetail />} />
             <Route path="/reading-lists" element={<ReadingLists />} />
+            <Route path="/reading-lists/:id" element={<ReadingListDetail />} />
             <Route path="/stats" element={<Stats />} />
           </Route>
+...
+
 
           {/* Role-specific routes */}
           <Route element={<ProtectedRoute allowedRoles={['dosen', 'admin']} />}>
