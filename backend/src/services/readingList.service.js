@@ -94,7 +94,7 @@ export const deleteReadingList = async (id, user) => {
   if (readingList.owner.toString() !== user._id.toString()) {
     throw new Error('Not authorized to delete this reading list');
   }
-  await readingList.remove();
+  await readingList.deleteOne();
   return readingList;
 };
 
