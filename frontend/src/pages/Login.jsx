@@ -24,7 +24,7 @@ const Login = () => {
     try {
       await login({ email, password });
     } catch (error) {
-      console.error('Login failed', error);
+      console.error('Invalid Email or Password', error);
     }
   };
 

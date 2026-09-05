@@ -38,7 +38,6 @@ export const getPaperById = async (req, res, next) => {
     if (!paper) {
       return sendError(res, 404, 'Paper not found');
     }
-    // Manually populate artifacts
     const artifacts = await Artifact.find({ paper: paper._id });
     sendSuccess(res, 200, { ...paper.toObject(), artifacts });
   } catch (error) {
@@ -96,7 +95,7 @@ export const deletePaper = async (req, res, next) => {
   } catch (error) {
     console.error('Error in deletePaper controller:', error);
     if (error.message.startsWith('Not authorized')) {
-      return sendError(res, 403, error.message);
+      return sendError(res, 403, error.message);  
     }
     if (error.message === 'Paper not found') {
       return sendError(res, 404, error.message);

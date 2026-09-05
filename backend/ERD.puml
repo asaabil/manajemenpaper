@@ -1,0 +1,73 @@
+@startuml ERD Manajemen Paper
+hide circle
+skinparam linetype ortho
+
+entity "User" as user {
+    * _id : ObjectId <<generated>>
+    --
+    * name : String
+    * email : String
+    * passwordHash : String
+    * role : String [enum: admin, dosen, mahasiswa]
+    affiliation : String
+    createdAt : Date
+    updatedAt : Date
+}
+
+entity "Paper" as paper {
+    * _id : ObjectId <<generated>>
+    --
+    * owner : ObjectId <<FK>>
+    * title : String
+    * abstract : String
+    authors : Array<String>
+    institution : String
+    keywords : Array<String>
+    publicationDate : Date
+    categories : Array<String>
+    * file.path : String
+    * file.filename : String
+    * file.mimetype : String
+    * file.size : Number
+    versions : Array<Object>
+    viewCount : Number
+    downloadCount : Number
+    isPublic : Boolean
+    createdAt : Date
+    updatedAt : Date
+}
+
+entity "ReadingList" as reading_list {
+    * _id : ObjectId <<generated>>
+    --
+    * owner : ObjectId <<FK>>
+    * name : String
+    description : String
+    isPublic : Boolean
+    items : Array<Object> <<contains Paper ObjectId>>
+    createdAt : Date
+    updatedAt : Date
+}
+
+entity "Artifact" as artifact {
+    * _id : ObjectId <<generated>>
+    --
+    * paper : ObjectId <<FK>>
+    * type : String [enum: dataset, source_code, diagram, other]
+    name : String
+    * sourceType : String [enum: file, link]
+    file.path : String
+    file.filename : String
+    file.mimetype : String
+    file.size : Number
+    url : String
+    createdAt : Date
+    updatedAt : Date
+}
+
+user ||--o{ paper : "owner"
+user ||--o{ reading_list : "owner"
+paper ||--o{ artifact : "has"
+reading_list }o--o{ paper : "items (papers)"
+
+@enduml

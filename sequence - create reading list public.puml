@@ -1,0 +1,82 @@
+@startuml
+autonumber
+actor "Dosen" as D
+boundary "ReadingListsPage" as UI
+boundary "AddPaperModal" as Modal
+control "ReadingListController" as C
+control "ReadingListService" as S
+entity "ReadingList" as DB
+
+D -> UI : Menekan navigasi tab "Reading Lists"
+activate UI
+UI -->> D : Menampilkan halaman daftar bacaan
+
+D -> UI : Mengetik nama daftar bacaan
+D -> UI : Mencentang opsi "Public"
+D -> UI : Menekan tombol "Create"
+
+UI -> C : Request POST /reading-lists
+activate C
+C -> S : createReadingList(listData, user)
+activate S
+
+S -> DB : ReadingList.create()
+activate DB
+DB -->> S : return readingList
+deactivate DB
+
+S -->> C : return readingList
+deactivate S
+
+C -->> UI : return sendSuccess (201 Created)
+deactivate C
+
+UI -> UI : InvalidateQueries('reading-lists')
+UI -->> D : Daftar bacaan baru berhasil dibuat dan ditampilkan
+
+D -> UI : Menekan tombol "+ Add Paper"
+UI -> Modal : Buka window modal penambahan makalah
+activate Modal
+Modal -->> D : Menampilkan window pencarian makalah
+
+D -> Modal : Mencari dan menekan makalah yang ingin dimasukkan
+Modal -> C : Request POST /reading-lists/{listId}/papers
+activate C
+C -> S : addPaperToReadingList(listId, paperId, user)
+activate S
+
+S -> DB : findById(listId)
+activate DB
+DB -->> S : return readingList / Null
+deactivate DB
+
+alt Reading List Not Found (Exception)
+    S -->> C : throw exception "Reading list not found"
+    C -->> Modal : return sendError (404 Not Found)
+    Modal -->> D : Tampilkan pesan error kepada pengguna
+else Paper Already in List (Exception)
+    S -->> C : throw exception "Paper already in this reading list"
+    C -->> Modal : return sendError (400 Bad Request)
+    Modal -->> D : Tampilkan pesan error kepada pengguna
+else Makalah Berhasil Ditambahkan
+    S -> DB : readingList.save()
+    activate DB
+    DB -->> S : return readingList
+    deactivate DB
+
+    S -->> C : return readingList
+    deactivate S
+
+    C -->> Modal : return sendSuccess (200 OK)
+    deactivate C
+
+    Modal -->> D : Indikasi makalah berhasil ditambahkan (Success Message)
+end
+
+D -> Modal : Menekan tombol "Close"
+Modal -> UI : Tutup window modal
+deactivate Modal
+
+UI -->> D : Kembali melihat daftar bacaan yang sudah terisi
+deactivate UI
+@enduml

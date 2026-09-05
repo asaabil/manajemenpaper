@@ -25,14 +25,11 @@ export const login = async (req, res, next) => {
 };
 
 export const logout = (req, res) => {
-  // On the client-side, the token should be deleted.
-  // This endpoint is for semantics.
   sendSuccess(res, 200, { message: 'Logged out successfully' });
 };
 
 export const forgotPassword = async (req, res, next) => {
   try {
-    // In a real app, you would generate a reset token, save it to the user, and send it in an email.
     const { email } = req.body;
     await sendPasswordResetEmail(email, 'mock-reset-token');
     sendSuccess(res, 200, { message: 'Password reset email sent' });
@@ -43,7 +40,6 @@ export const forgotPassword = async (req, res, next) => {
 
 export const resetPassword = async (req, res, next) => {
   try {
-    // In a real app, you would verify the token and update the password.
     sendSuccess(res, 200, { message: 'Password reset successfully' });
   } catch (error) {
     sendError(res, 500, error.message);

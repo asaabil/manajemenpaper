@@ -1,0 +1,46 @@
+@startuml
+autonumber
+actor "Dosen" as D
+boundary "PapersPage" as P
+control "PaperController" as C
+control "PaperService" as S
+entity "Papers" as DB
+
+D -> P : Menekan navigasi tab "Papers"
+activate P
+P -->> D : Menampilkan halaman daftar makalah
+
+D -> P : tombol "Delete" pada suatu makalah
+P -->> D : Menampilkan dialog peringatan konfirmasi
+
+D -> P : Mengkonfirmasi dengan menekan "Yes"
+P -> C : Request deletePaper(paperId)
+activate C
+C -> S : deletePaper(id, user)
+activate S
+
+S -> DB : FindbyId(id)
+activate DB
+DB -->> S : Return ID Null
+deactivate DB
+
+alt Paper Not Found (Exception)
+    S -->> C : throw exception "Paper Not Found"
+    C -->> P : return sendError (404 not found)
+    P -->> D : Tampilkan pesan error kepada pengguna
+else Paper Ditemukan
+
+
+    S -> DB : paper.delete()
+    activate DB
+    DB -->> S : return paper
+    deactivate DB
+
+
+    C -->> P : Return Success (200 OK)
+    deactivate C
+
+    P -->> D : Makalah berhasil dihapus dan hilang dari tampilan
+    deactivate P
+end
+@enduml

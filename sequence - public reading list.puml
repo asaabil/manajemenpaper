@@ -1,0 +1,64 @@
+@startuml
+autonumber
+actor "Dosen" as D
+participant "ReadingListsPage" as UI
+participant "AddPaperModal" as Modal
+participant "ReadingListController" as C
+participant "ReadingListService" as S
+database "Database" as DB
+
+note over D, UI
+Precondition: Dosen memiliki sesi
+login yang aktif.
+end note
+
+D -> UI : Menekan navigasi tab "Reading Lists"
+activate UI
+UI -->> D : Menampilkan halaman daftar bacaan
+
+D -> UI : Mengetik nama daftar bacaan baru
+D -> UI : Mencentang opsi "Public"
+D -> UI : Menekan tombol "Create"
+
+UI -> C : Request createReadingList(name, isPublic=true)
+activate C
+C -> S : createReadingList(data, user)
+activate S
+S -> DB : Insert data ReadingList baru
+activate DB
+DB -->> S : status saved (list berhasil dibuat)
+deactivate DB
+S -->> C : kembalikan data reading list
+deactivate S
+C -->> UI : Response success (201 Created)
+deactivate C
+
+UI -> UI : Refresh daftar bacaan di UI
+UI -->> D : Daftar bacaan baru muncul di layar
+
+D -> UI : Menekan tombol "+ Add Paper" pada list tersebut
+UI -> Modal : Buka window penambahan makalah
+activate Modal
+Modal -->> D : Menampilkan window (modal) pencarian makalah
+
+D -> Modal : Mencari dan menekan makalah yang diinginkan
+Modal -> C : Request addPaperToReadingList(listId, paperId)
+activate C
+C -> S : addPaperToReadingList(listId, paperId)
+activate S
+S -> DB : Update ReadingList (push paperId)
+activate DB
+DB -->> S : status updated
+deactivate DB
+S -->> C : kembalikan data reading list terbaru
+deactivate S
+C -->> Modal : Response success (200 OK)
+deactivate C
+Modal -->> D : Indikasi makalah berhasil ditambahkan
+
+D -> Modal : Menekan tombol "Close"
+Modal -> UI : Tutup window modal
+deactivate Modal
+UI -->> D : Kembali melihat daftar bacaan yang sudah terisi
+deactivate UI
+@enduml

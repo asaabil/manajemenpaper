@@ -1,0 +1,41 @@
+@startuml
+autonumber
+actor "Dosen" as D
+boundary "UploadPaper" as UP
+control "PaperController" as C
+control "PaperService" as S
+entity "Paper" as P_DB
+
+D -> UP : Menekan tombol "Upload"
+activate UP
+UP -->> D : Menampilkan halaman form pengunggahan makalah
+
+D -> UP : Mengisi detail metadata makalah (judul, abstrak, dll)
+D -> UP : Mengunggah makalah dalam format PDF
+D -> UP : Menekan tombol "Submit Paper"
+
+UP -> UP : Validasi kelengkapan metadata dan file PDF
+alt Validasi Gagal (Exception)
+    UP -->> D : Tampilkan pesan error "Please fix the validation errors before submitting."
+else Validasi Berhasil
+    UP -> C : Request createPaper(req, res)
+    activate C
+
+    C -> S : createPaperWithArtifacts(body, files, user)
+    activate S
+
+    S -> P_DB : paper.save()
+    activate P_DB
+    P_DB -->> S : return savedPaper
+    deactivate P_DB
+
+    S -->> C : return paper
+    deactivate S
+
+    C -->> UP : return sendSuccess (201 Created)
+    deactivate C
+
+    UP -->> D : Makalah berhasil diunggah,\nRedirect kembali ke halaman Papers
+    deactivate UP
+end
+@enduml

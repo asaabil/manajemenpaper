@@ -1,0 +1,60 @@
+@startuml
+autonumber
+actor "Dosen" as D
+boundary "UploadPaper" as UP
+control "PaperController" as C
+control "PaperService" as S
+entity "Paper" as P_DB
+entity "Artifact" as A_DB
+
+loop Sebanyak jumlah artefak yang ingin diunggah sekaligus
+    D -> UP : Menekan tombol "Add Artifacts"
+    activate UP
+    UP -->> D : Menampilkan baris form input artefak
+
+    D -> UP : Memilih tipe artefak
+    alt Tipe Artefak == "Others"
+        D -> UP : Mengisi input "Custom Name"
+    end
+
+    D -> UP : Memilih source artefak (berkas/tautan)
+    D -> UP : Mencantumkan berkas atau tautan artefak
+
+    alt Artefact exceeding size limit (Exception)
+        UP -->> D : Tampilkan alert peringatan "Artifact file size must be less than 20MB."
+    end
+end
+
+D -> UP : Menekan tombol "Submit All Papers"
+
+alt Metadata / Sumber Artefak Tidak Lengkap (Exception)
+    UP -->> D : Tampilkan pesan peringatan "Please fix the validation errors before submitting."
+else Validasi Berhasil
+    UP -> C : Request POST /papers
+    activate C
+
+    C -> S : createPaperWithArtifacts(body, files, user)
+    activate S
+
+    S -> P_DB : paper.save()
+    activate P_DB
+    P_DB -->> S : return savedPaper
+    deactivate P_DB
+
+    loop Untuk setiap data Artifact
+        S -> A_DB : artifact.save()
+        activate A_DB
+        A_DB -->> S : return savedArtifact
+        deactivate A_DB
+    end
+
+    S -->> C : return paper berserta list artifacts
+    deactivate S
+
+    C -->> UP : return sendSuccess (201 Created)
+    deactivate C
+
+    UP -->> D : Artefak berhasil diunggah,\nRedirect kembali ke halaman Papers
+    deactivate UP
+end
+@enduml
