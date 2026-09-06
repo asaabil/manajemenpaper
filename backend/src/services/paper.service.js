@@ -66,7 +66,8 @@ const reconstructArtifacts = (body) => {
           type: plainArtifact.type,
           name: plainArtifact.name || '',
           sourceType: plainArtifact.sourceType,
-          value: plainArtifact.value
+          value: plainArtifact.value,
+          existingId: plainArtifact.existingId || null,
         });
       }
     });
@@ -90,8 +91,9 @@ const reconstructArtifacts = (body) => {
     const name = plainBody[`artifacts[${index}][name]`];
     const sourceType = plainBody[`artifacts[${index}][sourceType]`];
     const value = plainBody[`artifacts[${index}][value]`];
+    const existingId = plainBody[`artifacts[${index}][existingId]`] || null;
 
-    console.log(`Artifact ${index}:`, { type, name, sourceType, value });
+    console.log(`Artifact ${index}:`, { type, name, sourceType, value, existingId });
 
     if (type) {
       artifacts.push({
@@ -99,7 +101,8 @@ const reconstructArtifacts = (body) => {
         type: type,
         name: name || '',
         sourceType: sourceType,
-        value: value
+        value: value,
+        existingId: existingId,
       });
     }
   }
@@ -236,19 +239,69 @@ export const updatePaperWithArtifacts = async (id, body, files, user) => {
   }
 
   const oldArtifacts = await Artifact.find({ paper: paper._id });
+  const artifactDataList = reconstructArtifacts(body);
+
+  // Collect the existingIds that are being kept in this submission
+  const keptExistingIds = artifactDataList
+    .filter(a => a.existingId)
+    .map(a => a.existingId);
+
+  // Delete only artifacts that were removed from the form (not in keptExistingIds)
   for (const artifact of oldArtifacts) {
-    if (artifact.sourceType === 'file' && artifact.file && artifact.file.path) {
-      fs.unlink(artifact.file.path, (err) => {
-        if (err) console.error(`Failed to delete artifact file: ${artifact.file.path}`, err);
-      });
+    if (!keptExistingIds.includes(artifact._id.toString())) {
+      if (artifact.sourceType === 'file' && artifact.file && artifact.file.path) {
+        fs.unlink(artifact.file.path, (err) => {
+          if (err) console.error(`Failed to delete artifact file: ${artifact.file.path}`, err);
+        });
+      }
+      await artifact.deleteOne();
     }
   }
-  await Artifact.deleteMany({ paper: paper._id });
 
-  const artifactDataList = reconstructArtifacts(body);
   const createdArtifacts = [];
 
   for (const artifactData of artifactDataList) {
+    // If this is an existing artifact being kept
+    if (artifactData.existingId) {
+      const existingArtifact = oldArtifacts.find(a => a._id.toString() === artifactData.existingId);
+      if (existingArtifact) {
+        const artifactFile = files.find(f => f.fieldname === `artifacts[${artifactData.index}][value]`);
+        if (artifactFile) {
+          // User uploaded a new file — replace the old one
+          if (existingArtifact.sourceType === 'file' && existingArtifact.file && existingArtifact.file.path) {
+            fs.unlink(existingArtifact.file.path, (err) => {
+              if (err) console.error(`Failed to delete old artifact file: ${existingArtifact.file.path}`, err);
+            });
+          }
+          existingArtifact.type = artifactData.type;
+          existingArtifact.name = artifactData.name;
+          existingArtifact.sourceType = 'file';
+          existingArtifact.file = {
+            path: artifactFile.path,
+            filename: artifactFile.filename,
+            mimetype: artifactFile.mimetype,
+            size: artifactFile.size,
+          };
+          existingArtifact.url = undefined;
+        } else if (artifactData.sourceType === 'link' && artifactData.value) {
+          // User changed to a link
+          existingArtifact.type = artifactData.type;
+          existingArtifact.name = artifactData.name;
+          existingArtifact.sourceType = 'link';
+          existingArtifact.url = normalizeUrl(artifactData.value);
+          existingArtifact.file = undefined;
+        } else {
+          // No new file / no new link — keep existing data, just update type/name metadata
+          existingArtifact.type = artifactData.type;
+          existingArtifact.name = artifactData.name;
+        }
+        const savedArtifact = await existingArtifact.save();
+        createdArtifacts.push(savedArtifact);
+      }
+      continue;
+    }
+
+    // Brand new artifact
     const newArtifactPayload = {
       paper: paper._id,
       type: artifactData.type,

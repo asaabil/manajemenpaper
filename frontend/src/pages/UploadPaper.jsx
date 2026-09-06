@@ -40,7 +40,6 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
     if (file && file.size > 10 * 1024 * 1024) { // 10MB limit
       newErrors.paperFile = 'File size must be less than 10MB.';
       onPaperChange(paper.id, { paperFile: null, errors: newErrors });
-      // Reset the input value so user can try again
       e.target.value = null;
     } else {
       delete newErrors.paperFile;
@@ -91,7 +90,7 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
 
   const handleRemoveArtifact = (artifactId) => {
     const newArtifacts = paper.artifacts.filter(a => a.id !== artifactId);
-    // Also remove any errors associated with this artifact
+    // remove any errors associated with this artifact
     const newErrors = { ...paper.errors };
     if (newErrors.artifactErrors) {
       delete newErrors.artifactErrors[artifactId];
@@ -281,38 +280,28 @@ const UploadPaper = () => {
           return String(fieldValue);
         };
 
-        // Handle keywords - typically array of strings
         const keywords = fieldToString(entry.fields?.keywords);
 
-        // Handle title - typically string
         const title = fieldToString(entry.fields?.title);
 
-        // Handle abstract - typically string
         const abstract = fieldToString(entry.fields?.abstract);
 
-        // Handle year/date - typically string
         let publicationDate = fieldToString(entry.fields?.year);
         if (!publicationDate) {
           publicationDate = fieldToString(entry.fields?.date);
         }
 
-        // Extract file path hint from .bib (if available)
+        // Extract file path hint from .bib
         let fileHint = '';
         if (entry.fields?.file) {
           let fileField = fieldToString(entry.fields.file);
           console.log('Raw file field:', fileField);
 
-          // File field format in BibTeX is often: :path:type
-          // The path may contain escaped colons (\:)
-          // Replace escaped colons temporarily
           fileField = fileField.replace(/\\:/g, '###COLON###');
 
-          // Now split by unescaped colons
           if (fileField.includes(':')) {
             const parts = fileField.split(':');
-            // Usually format is :path:type, so path is at index 1
             fileHint = parts[1] || parts[0] || '';
-            // Restore the escaped colons
             fileHint = fileHint.replace(/###COLON###/g, ':');
           } else {
             fileHint = fileField.replace(/###COLON###/g, ':');

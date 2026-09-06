@@ -32,6 +32,7 @@ const EditPaper = () => {
   });
   const [paperFile, setPaperFile] = useState(null);
   const [artifacts, setArtifacts] = useState([]);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (paper) {
@@ -59,10 +60,13 @@ const EditPaper = () => {
     mutationFn: updatePaper,
     onSuccess: (data) => {
       const updatedPaper = data?.data;
-      queryClient.setQueryData(['paper', id], updatedPaper); // Update the cache with the response
+      queryClient.setQueryData(['paper', id], updatedPaper);
       queryClient.invalidateQueries({ queryKey: ['papers'] });
-      navigate('/papers');
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['paper', id] });
+      setSuccessMessage('Paper successfully edited!');
+      setTimeout(() => {
+        navigate(`/papers/${id}`);
+      }, 1500);
     },
   });
 
@@ -116,6 +120,10 @@ const EditPaper = () => {
       formData.append(`artifacts[${index}][type]`, artifact.type);
       formData.append(`artifacts[${index}][name]`, artifact.name || '');
       formData.append(`artifacts[${index}][sourceType]`, artifact.sourceType);
+      // Send existingId so backend knows to preserve this artifact (not delete it)
+      if (!artifact.clientManaged && artifact.id) {
+        formData.append(`artifacts[${index}][existingId]`, artifact.id);
+      }
       if (artifact.value) {
         formData.append(`artifacts[${index}][value]`, artifact.value);
       }
@@ -131,9 +139,20 @@ const EditPaper = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-200">Edit Paper</h1>
+
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-800 rounded-lg flex items-center gap-2 dark:bg-green-900/30 dark:border-green-600 dark:text-green-300">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          {successMessage}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-8">
         
         {/* Section 1: Main Paper */}
+
         <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4 border-b pb-2 dark:text-gray-200 dark:border-gray-700">Paper Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
