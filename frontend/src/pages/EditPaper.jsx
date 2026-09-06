@@ -75,6 +75,18 @@ const EditPaper = () => {
     setPaperDetails(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePaperFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 10 * 1024 * 1024) {
+      setFileErrors(prev => ({ ...prev, paperFile: 'File size must be less than 10MB.' }));
+      setPaperFile(null);
+      e.target.value = null;
+    } else {
+      setFileErrors(prev => ({ ...prev, paperFile: '' }));
+      setPaperFile(file);
+    }
+  };
+
   const handleAddArtifact = () => {
     setArtifacts(prev => [...prev, {
       id: uuidv4(),
@@ -90,7 +102,24 @@ const EditPaper = () => {
     setArtifacts(prev => prev.filter(artifact => artifact.id !== id));
   };
 
-  const handleArtifactChange = (id, field, value) => {
+  const handleArtifactChange = (id, field, value, target = null) => {
+    if (field === 'value' && value instanceof File) {
+      if (value.size > 10 * 1024 * 1024) {
+        setFileErrors(prev => ({
+          ...prev,
+          artifacts: { ...prev.artifacts, [id]: 'File size must be less than 10MB.' }
+        }));
+        if (target) target.value = null;
+        value = null;
+      } else {
+        setFileErrors(prev => {
+          const nextArtifacts = { ...prev.artifacts };
+          delete nextArtifacts[id];
+          return { ...prev, artifacts: nextArtifacts };
+        });
+      }
+    }
+
     setArtifacts(prev => prev.map(artifact => {
       if (artifact.id === id) {
         const updatedArtifact = { ...artifact, [field]: value };
@@ -182,7 +211,8 @@ const EditPaper = () => {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium dark:text-gray-300">Replace Paper File (PDF) - Optional</label>
-              <input type="file" onChange={(e) => setPaperFile(e.target.files[0])} accept=".pdf" className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800" />
+              <input type="file" onChange={handlePaperFileChange} accept=".pdf" className={`w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800 ${fileErrors.paperFile ? 'border-red-500' : ''}`} />
+              {fileErrors.paperFile && <p className="text-red-500 text-xs mt-1">{fileErrors.paperFile}</p>}
             </div>
           </div>
         </div>
@@ -228,7 +258,12 @@ const EditPaper = () => {
                       <label htmlFor={`source-link-${artifact.id}`} className="text-sm dark:text-gray-300">Link</label>
                     </div>
                     {artifact.sourceType === 'file' ? (
-                      <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0])} className="w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400" />
+                      <>
+                        <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0], e.target)} className={`w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400 ${fileErrors.artifacts[artifact.id] ? 'border-red-500' : ''}`} />
+                        {fileErrors.artifacts[artifact.id] && (
+                          <p className="text-red-500 text-xs mt-1">{fileErrors.artifacts[artifact.id]}</p>
+                        )}
+                      </>
                     ) : (
                       <input type="text" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="youtube.com or https://google.com" className="w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
                     )}

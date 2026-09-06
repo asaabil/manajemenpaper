@@ -48,11 +48,31 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
   };
 
   const handleArtifactChange = (artifactId, field, value, target = null) => {
+    const newErrors = { ...paper.errors };
+    const artifactErrors = { ...newErrors.artifactErrors };
+    const currentArtifactError = { ...artifactErrors[artifactId] };
+
     if (field === 'value' && value instanceof File) {
-      if (value.size > 20 * 1024 * 1024) {
-        alert('Artifact file size must be less than 20MB.');
+      if (value.size > 10 * 1024 * 1024) { // 10MB limit
+        currentArtifactError.value = 'File size must be less than 10MB.';
         if (target) target.value = null;
         value = null;
+      } else {
+        delete currentArtifactError.value;
+      }
+    } else if (field === 'value') {
+      delete currentArtifactError.value;
+    }
+
+    if (Object.keys(currentArtifactError).length > 0) {
+      artifactErrors[artifactId] = currentArtifactError;
+      newErrors.artifactErrors = artifactErrors;
+    } else {
+      delete artifactErrors[artifactId];
+      if (Object.keys(artifactErrors).length === 0) {
+        delete newErrors.artifactErrors;
+      } else {
+        newErrors.artifactErrors = artifactErrors;
       }
     }
 
@@ -66,14 +86,6 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
       return artifact;
     });
 
-    // Clear artifact errors when user changes something
-    const newErrors = { ...paper.errors };
-    if (newErrors.artifactErrors) {
-      delete newErrors.artifactErrors[artifactId];
-      if (Object.keys(newErrors.artifactErrors).length === 0) {
-        delete newErrors.artifactErrors;
-      }
-    }
     onPaperChange(paper.id, { artifacts: newArtifacts, errors: newErrors });
   };
 
