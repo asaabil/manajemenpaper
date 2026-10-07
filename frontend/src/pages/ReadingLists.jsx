@@ -17,6 +17,7 @@ const ReadingLists = () => {
 
   const [newListName, setNewListName] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [publicSearch, setPublicSearch] = useState('');
   
   // State for AddPaperModal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -55,9 +56,16 @@ const ReadingLists = () => {
   if (isErrorMy) return <div className="text-red-500">Error: {errorMy.message}</div>;
 
   // Filter public lists to exclude those already in myReadingLists to avoid duplication
-  const otherPublicLists = publicReadingLists?.filter(pubList => 
+  const otherPublicLists = (publicReadingLists?.filter(pubList => 
     !myReadingLists?.some(myList => myList._id === pubList._id)
-  ) || [];
+  ) || []).filter(list => {
+    if (!publicSearch.trim()) return true;
+    const q = publicSearch.toLowerCase();
+    return (
+      list.name?.toLowerCase().includes(q) ||
+      list.owner?.name?.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="container mx-auto p-4">
@@ -153,7 +161,21 @@ const ReadingLists = () => {
 
       {/* Section: Public Lists from Others */}
       <div>
-        <h2 className="text-xl font-bold mb-4 dark:text-white border-b pb-2 dark:border-gray-700">Explore Public Reading Lists</h2>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b pb-2 dark:border-gray-700">
+          <h2 className="text-xl font-bold dark:text-white">Explore Public Reading Lists</h2>
+          <div className="relative w-full md:w-72">
+            <input
+              type="text"
+              value={publicSearch}
+              onChange={(e) => setPublicSearch(e.target.value)}
+              placeholder="Search by list name or dosen..."
+              className="w-full px-3 py-2 pl-9 border rounded-md text-sm focus:outline-none focus:ring focus:ring-indigo-200 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+            />
+            <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {otherPublicLists.length > 0 ? otherPublicLists.map(list => (
             <div key={list._id} className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow-sm border dark:border-gray-700">
@@ -178,7 +200,11 @@ const ReadingLists = () => {
             </div>
           )) : (
             <div className="col-span-full text-center py-10 bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed dark:border-gray-700">
-              <p className="text-gray-500 dark:text-gray-400">No public reading lists found from other users.</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                {publicSearch.trim()
+                  ? `No public reading lists found matching "${publicSearch}".`
+                  : 'No public reading lists found from other users.'}
+              </p>
             </div>
           )}
         </div>
