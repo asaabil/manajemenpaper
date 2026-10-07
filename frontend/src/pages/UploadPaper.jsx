@@ -47,12 +47,15 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
     }
   };
 
+  const URL_REGEX = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
+
   const handleArtifactChange = (artifactId, field, value, target = null) => {
     const newErrors = { ...paper.errors };
     const artifactErrors = { ...newErrors.artifactErrors };
     const currentArtifactError = { ...artifactErrors[artifactId] };
 
     if (field === 'value' && value instanceof File) {
+      // File size validation
       if (value.size > 10 * 1024 * 1024) { // 10MB limit
         currentArtifactError.value = 'File size must be less than 10MB.';
         if (target) target.value = null;
@@ -60,7 +63,18 @@ const PaperForm = ({ paper, onPaperChange, onRemove }) => {
       } else {
         delete currentArtifactError.value;
       }
-    } else if (field === 'value') {
+    } else if (field === 'value' && typeof value === 'string') {
+      // Real-time URL validation
+      const trimmed = value.trim();
+      if (trimmed === '') {
+        currentArtifactError.value = 'Link is required.';
+      } else if (!URL_REGEX.test(trimmed)) {
+        currentArtifactError.value = 'Please enter a valid URL (e.g., example.com or https://example.com).';
+      } else {
+        delete currentArtifactError.value;
+      }
+    } else if (field === 'sourceType') {
+      // Clear link/file errors when switching source type
       delete currentArtifactError.value;
     }
 

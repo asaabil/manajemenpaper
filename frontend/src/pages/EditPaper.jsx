@@ -34,6 +34,9 @@ const EditPaper = () => {
   const [artifacts, setArtifacts] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [fileErrors, setFileErrors] = useState({ artifacts: {} });
+  const [linkErrors, setLinkErrors] = useState({});
+
+  const URL_REGEX = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
 
   useEffect(() => {
     if (paper) {
@@ -101,9 +104,16 @@ const EditPaper = () => {
 
   const handleRemoveArtifact = (id) => {
     setArtifacts(prev => prev.filter(artifact => artifact.id !== id));
+    setLinkErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
+    setFileErrors(prev => {
+      const nextArtifacts = { ...prev.artifacts };
+      delete nextArtifacts[id];
+      return { ...prev, artifacts: nextArtifacts };
+    });
   };
 
   const handleArtifactChange = (id, field, value, target = null) => {
+    // File size validation
     if (field === 'value' && value instanceof File) {
       if (value.size > 10 * 1024 * 1024) {
         setFileErrors(prev => ({
@@ -121,6 +131,23 @@ const EditPaper = () => {
       }
     }
 
+    // URL validation for link sourceType
+    if (field === 'value' && typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed === '') {
+        setLinkErrors(prev => ({ ...prev, [id]: 'Link is required.' }));
+      } else if (!URL_REGEX.test(trimmed)) {
+        setLinkErrors(prev => ({ ...prev, [id]: 'Please enter a valid URL (e.g., example.com or https://example.com).' }));
+      } else {
+        setLinkErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
+      }
+    }
+
+    // Clear link error when switching away from link mode
+    if (field === 'sourceType' && value !== 'link') {
+      setLinkErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
+    }
+
     setArtifacts(prev => prev.map(artifact => {
       if (artifact.id === id) {
         const updatedArtifact = { ...artifact, [field]: value };
@@ -134,6 +161,25 @@ const EditPaper = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Block save if there are any active link errors
+    if (Object.keys(linkErrors).length > 0) return;
+
+    // Also block if any link artifact has empty value
+    const hasEmptyLinks = artifacts.some(
+      a => a.sourceType === 'link' && (!a.value || !a.value.trim())
+    );
+    if (hasEmptyLinks) {
+      const emptyLinkErrors = {};
+      artifacts.forEach(a => {
+        if (a.sourceType === 'link' && (!a.value || !a.value.trim())) {
+          emptyLinkErrors[a.id] = 'Link is required.';
+        }
+      });
+      setLinkErrors(emptyLinkErrors);
+      return;
+    }
+
     const formData = new FormData();
 
     // Append main paper details
@@ -266,7 +312,12 @@ const EditPaper = () => {
                         )}
                       </>
                     ) : (
-                      <input type="text" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="youtube.com or https://google.com" className="w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white" />
+                      <>
+                        <input type="text" value={artifact.value || ''} onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.value)} placeholder="youtube.com or https://google.com" className={`w-full mt-2 p-2 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white ${linkErrors[artifact.id] ? 'border-red-500' : ''}`} />
+                        {linkErrors[artifact.id] && (
+                          <p className="text-red-500 text-xs mt-1">{linkErrors[artifact.id]}</p>
+                        )}
+                      </>
                     )}
                     {!artifact.clientManaged && artifact.sourceType === 'file' && artifact.file && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">File already uploaded: {artifact.file.filename}. Leave blank to keep it, or upload a new file to replace it.</p>

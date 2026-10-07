@@ -1,0 +1,64 @@
+@startdot
+' =============================================================================
+' Control Flow Graph - Proses Unggah Paper beserta Artefak Pendukung
+' Unit  : src/services/paper.service.js -> createPaperWithArtifacts()
+' V(G)  : 6   (P + 1 = 5 + 1  |  E - N + 2 = 21 - 17 + 2  |  region = 6)
+'
+' Cara render:
+'   - VS Code  : extension "PlantUML" (butuh Graphviz terpasang)
+'   - Terminal : plantuml -tpng cfg-upload-paper.puml
+'   - Online   : https://www.plantuml.com/plantuml  (tempel seluruh isi berkas)
+' =============================================================================
+digraph CFG {
+    rankdir=TB;
+    bgcolor="white";
+    node [fontname="Arial", fontsize=11, style=filled, fillcolor="white",
+          shape=circle, fixedsize=true, width=0.45];
+    edge [fontname="Arial", fontsize=9, arrowsize=0.8];
+
+    // ---- Node keputusan (predicate node) digambarkan sebagai belah ketupat --
+    3  [shape=diamond, fixedsize=false, width=0.6, height=0.5, fillcolor="#FFF2CC"];
+    8  [shape=diamond, fixedsize=false, width=0.6, height=0.5, fillcolor="#FFF2CC"];
+    10 [shape=diamond, fixedsize=false, width=0.6, height=0.5, fillcolor="#FFF2CC"];
+    12 [shape=diamond, fixedsize=false, width=0.6, height=0.5, fillcolor="#FFF2CC"];
+    14 [shape=diamond, fixedsize=false, width=0.6, height=0.5, fillcolor="#FFF2CC"];
+
+    // ---- Node keluar -------------------------------------------------------
+    17 [shape=doublecircle, width=0.42, fillcolor="#D5E8D4"];
+    4  [fillcolor="#F8CECC"];
+    16 [fillcolor="#F8CECC"];
+
+    // ---- Alur validasi berkas paper ----------------------------------------
+    1  -> 2;
+    2  -> 3;
+    3  -> 4  [label="ya"];
+    3  -> 5  [label="tidak"];
+    4  -> 17 [label="exception", style=dashed];
+
+    // ---- Penyusunan data dan penyimpanan paper -----------------------------
+    5  -> 6;
+    6  -> 7;
+
+    // ---- Perulangan pemrosesan artefak -------------------------------------
+    7  -> 8;
+    8  -> 9  [label="ada"];
+    8  -> 17 [label="habis"];
+    9  -> 10;
+
+    // Penentuan sumber artefak
+    10 -> 11 [label="link"];
+    10 -> 12 [label="bukan link"];
+    11 -> 14;
+    12 -> 13 [label="file"];
+    12 -> 14 [label="lainnya"];
+    13 -> 14;
+
+    // Penjagaan kelengkapan data artefak
+    14 -> 15 [label="lengkap"];
+    14 -> 16 [label="tidak lengkap"];
+
+    // Kembali ke awal perulangan
+    15 -> 8  [style=dashed];
+    16 -> 8  [style=dashed];
+}
+@enddot
