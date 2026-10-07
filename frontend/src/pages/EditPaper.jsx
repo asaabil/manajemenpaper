@@ -33,6 +33,7 @@ const EditPaper = () => {
   const [paperFile, setPaperFile] = useState(null);
   const [artifacts, setArtifacts] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
+  const [fileErrors, setFileErrors] = useState({ artifacts: {} });
 
   useEffect(() => {
     if (paper) {
@@ -259,8 +260,8 @@ const EditPaper = () => {
                     </div>
                     {artifact.sourceType === 'file' ? (
                       <>
-                        <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0], e.target)} className={`w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400 ${fileErrors.artifacts[artifact.id] ? 'border-red-500' : ''}`} />
-                        {fileErrors.artifacts[artifact.id] && (
+                        <input type="file" onChange={(e) => handleArtifactChange(artifact.id, 'value', e.target.files[0], e.target)} className={`w-full mt-2 p-1 border rounded-md text-sm dark:bg-gray-600 dark:border-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-gray-500 dark:file:text-gray-200 dark:hover:file:bg-gray-400 ${fileErrors.artifacts?.[artifact.id] ? 'border-red-500' : ''}`} />
+                        {fileErrors.artifacts?.[artifact.id] && (
                           <p className="text-red-500 text-xs mt-1">{fileErrors.artifacts[artifact.id]}</p>
                         )}
                       </>
