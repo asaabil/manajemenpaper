@@ -43,7 +43,6 @@ const Register = () => {
             <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full px-3 py-2 mt-1 border rounded-md">
               <option value="mahasiswa">Mahasiswa</option>
               <option value="dosen">Dosen</option>
-              <option value="admin">Admin</option>
             </select>
           </div>
           {registerError && <p className="text-sm text-red-600">{registerError.response?.data?.error?.message || 'Registration failed'}</p>}
