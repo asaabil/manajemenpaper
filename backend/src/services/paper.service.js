@@ -3,7 +3,7 @@ import Artifact from '../models/Artifact.js';
 import fs from 'fs';
 
 // Helper function to safely convert a comma-separated string to a trimmed array
-const toArray = (value) => {
+export const toArray = (value) => {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string' && value.trim() !== '') {
     return value.split(',').map(item => item.trim());
@@ -12,7 +12,7 @@ const toArray = (value) => {
 };
 
 // Helper function to safely parse specific date formats
-const parseFlexibleDate = (dateString) => {
+export const parseFlexibleDate = (dateString) => {
   if (!dateString || typeof dateString !== 'string') {
     return null;
   }
@@ -31,7 +31,7 @@ const parseFlexibleDate = (dateString) => {
 };
 
 // Helper function to ensure a URL has a protocol
-const normalizeUrl = (url) => {
+export const normalizeUrl = (url) => {
   if (!url) return url;
   if (!/^https?:\/\//i.test(url)) {
     return `https://${url}`;
@@ -39,7 +39,7 @@ const normalizeUrl = (url) => {
   return url;
 };
 
-const reconstructArtifacts = (body) => {
+export const reconstructArtifacts = (body) => {
   const artifacts = [];
 
   // Convert body to plain object if needed (handles null prototype objects)

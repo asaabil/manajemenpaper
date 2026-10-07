@@ -1,14 +1,16 @@
-
 import { useState } from 'react';
 import { useReadingLists, useAddPaperToReadingList, useCreateReadingList } from '../hooks/useReadingLists';
+import useAuth from '../hooks/useAuth';
 
 const AddToReadingListModal = ({ paperId, isOpen, onClose }) => {
   const { data: readingLists, isLoading } = useReadingLists();
   const addPaperMutation = useAddPaperToReadingList();
   const createListMutation = useCreateReadingList();
+  const { user } = useAuth();
 
   const [selectedList, setSelectedList] = useState('');
   const [newListName, setNewListName] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
   const [mode, setMode] = useState('select'); // 'select' or 'create'
 
   if (!isOpen) return null;
@@ -28,7 +30,7 @@ const AddToReadingListModal = ({ paperId, isOpen, onClose }) => {
   const handleCreateAndAdd = (e) => {
     e.preventDefault();
     if (!newListName) return;
-    createListMutation.mutate({ name: newListName }, {
+    createListMutation.mutate({ name: newListName, isPublic }, {
       onSuccess: (data) => {
         const newListId = data.data.data._id;
         addPaperMutation.mutate({ readingListId: newListId, paperId }, {
@@ -36,6 +38,7 @@ const AddToReadingListModal = ({ paperId, isOpen, onClose }) => {
             onClose();
             setMode('select');
             setNewListName('');
+            setIsPublic(false);
           }
         });
       }
@@ -92,6 +95,18 @@ const AddToReadingListModal = ({ paperId, isOpen, onClose }) => {
                     required
                   />
                 </div>
+                {user && (user.role === 'dosen' || user.role === 'admin') && (
+                  <div className="mb-4 flex items-center">
+                    <input
+                      id="is-public"
+                      type="checkbox"
+                      checked={isPublic}
+                      onChange={(e) => setIsPublic(e.target.checked)}
+                      className="mr-2"
+                    />
+                    <label htmlFor="is-public" className="text-sm font-medium text-gray-700">Make this list public</label>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <button type="button" onClick={() => setMode('select')} className="text-sm text-indigo-600 hover:underline">Or select an existing list</button>
                   <div className="flex space-x-2">

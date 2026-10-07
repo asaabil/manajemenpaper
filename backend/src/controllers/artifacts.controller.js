@@ -40,12 +40,18 @@ export const downloadArtifact = async (req, res, next) => {
             return sendError(res, 404, 'Artifact not found');
         }
         if (artifact.file && artifact.file.path) {
-            res.download(path.resolve(artifact.file.path), artifact.file.filename);
-        } else if (artifact.externalRepoUrl) {
-            res.redirect(artifact.externalRepoUrl);
+            let baseName = artifact.name || artifact.type || 'artifact';
+            const safeName = baseName.replace(/[/\\?%*:|"<>]/g, '-').trim();
+            const extension = path.extname(artifact.file.filename) || '';
+            const downloadName = `${safeName}${extension}`;
+            
+            res.download(path.resolve(artifact.file.path), downloadName);
+        } else if (artifact.url) {
+            res.redirect(artifact.url);
         } else {
             return sendError(res, 404, 'No downloadable content for this artifact');
         }
+
     } catch (error) {
         sendError(res, 500, error.message);
     }

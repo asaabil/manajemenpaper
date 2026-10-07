@@ -52,7 +52,13 @@ export const downloadPaper = async (req, res, next) => {
             return sendError(res, 404, 'Paper not found');
         }
         const filePath = path.join(process.cwd(), paper.file.path);
-        res.download(filePath, paper.file.filename);
+        
+        // Sanitize title for filename
+        const safeTitle = paper.title.replace(/[/\\?%*:|"<>]/g, '-').trim();
+        const extension = path.extname(paper.file.filename) || '.pdf';
+        const downloadName = `${safeTitle}${extension}`;
+        
+        res.download(filePath, downloadName);
     } catch (error) {
         sendError(res, 500, error.message);
     }
